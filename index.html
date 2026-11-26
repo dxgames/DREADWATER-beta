@@ -118,7 +118,7 @@ h2{color:#f1c40f;text-align:center;margin:0 0 15px;text-shadow:2px 2px 0 #000;te
 
         📜 <b>Misiones:</b> en la taberna de cada puerto hay un tablón: cargamentos, cacerías de objetivos marcados, botines de isla y pasajeros. A veces conviene quedarse con el cargamento o el botín... pero te cazarán como represalia todo un día.<br><br>
 
-        ⛈️ <b>Tormentas:</b> una nube oscura en el mar, un evento raro. Dentro llueve, el viento te empuja y daña tu barco. La ves en el minimapa: evítala o aguanta.<br><br>
+        ⛈️ <b>Tormentas:</b> cubren todo el mapa. Muy lejos del centro (gris más claro) solo llueve sin daño; en la tormenta fuerte (gris claro) el manejo es complicado y causa daño muy leve; en el ojo (gris oscuro) el manejo es muy complicado y el daño mayor.<br><br>
 
         🔪 <b>Navajas y resistencia:</b> en el astillero puedes poner navajas en el casco (más daño al embestir) y mejorar la resistencia (menos daño al chocar).
     </div>
@@ -405,7 +405,7 @@ let hunterCD = 0, ghostCD = 0, resolving = false, lastBattleType = null, lostGol
 let ultratumba = false, ultratumbaTimer = 0; // evento noche de ultratumba
 // Misiones de taberna (beta 0.5.0): una activa a la vez, se guarda en el checkpoint
 let activeMission = null, offeredMissions = [];
-// Tormentas (beta 0.5.0): una nube que se mueve, llueve y empuja el barco
+// Tormentas (beta 0.6.0): abarca todo el mapa con 3 zonas (ojo gris oscuro, fuerte gris claro, lejos gris más claro)
 let storm = null, stormTimer = 9000 + Math.floor(Math.random() * 6000); // primera tormenta en 150-250 s
 const settings = { vibrate: true, music: true, ambient: true, sound: true };
 let mapCam = { x: 0, y: 0, zoom: 1 };
@@ -519,7 +519,6 @@ function loadGame() {
 }
 
 // --- Misiones de taberna (beta 0.5.0) ---
-// --- Misiones de taberna elaboradas (beta 0.5.0) ---
 const HUNT_NAMES = ['Barbanegra', 'El Cuervo', 'Marea Roja', 'El Silencioso', 'Pata de Palo', 'La Viuda Negra'];
 const PASSENGER_NAMES = ['el Capitán Barbarroja', 'la hija del gobernador', 'el viejo cartógrafo', 'la mercader Elena', 'el sacerdote del mar'];
 let huntIdCounter = 0, bounty = null; // bounty: te cazan por robar (un día de juego)
@@ -653,26 +652,61 @@ function updateBounty() { // un día de juego de cacería
     }
 }
 
-// --- Tormentas (beta 0.5.0) ---
+// --- Tormentas (beta 0.6.0): abarca todo el mapa con 3 zonas ---
+// 'eye' (< eyeR): gris oscuro, más daño y manejo muy complicado
+// 'strong' (< strongR): gris claro, daño muy leve y manejo complicado
+// 'far' (>= strongR): gris más claro en radar, sin daño y manejo normal, solo llueve
+function getStormZone(x, y) {
+    if (!storm) return null;
+    const d = dist(x, y, storm.x, storm.y);
+    if (d < storm.eyeR) return 'eye';
+    if (d < storm.strongR) return 'strong';
+    return 'far';
+}
 function updateStorm() {
     if (gameState !== STATE.ROAMING) return;
     if (!storm) {
         if (--stormTimer <= 0) {
             stormTimer = 9000 + Math.floor(Math.random() * 6000); // 150-250 s entre intentos
             if (Math.random() < 0.5) { // evento raro: 50% de probabilidad
-                const a = Math.random() * Math.PI * 2, d = 1800 + Math.random() * 800;
-                storm = { x: player.gX + Math.cos(a) * d, y: player.gY + Math.sin(a) * d, r: 500 + Math.random() * 200, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, life: 3600 + Math.floor(Math.random() * 3600), dmgT: 0 };
-                showMsg("⛈️ Se acerca una tormenta...", "#95a5a6");
+                const a = Math.random() * Math.PI * 2, d = 5000 + Math.random() * 9000;
+                const angMove = a + Math.PI + (Math.random() - 0.5) * 0.9;
+                const spdMove = 0.7 + Math.random() * 0.5;
+                storm = {
+                    x: player.gX + Math.cos(a) * d,
+                    y: player.gY + Math.sin(a) * d,
+                    eyeR: 2500,
+                    strongR: 11000,
+                    vx: Math.cos(angMove) * spdMove,
+                    vy: Math.sin(angMove) * spdMove,
+                    life: 4800 + Math.floor(Math.random() * 3600),
+                    dmgT: 0,
+                    zone: null
+                };
+                storm.zone = getStormZone(player.gX, player.gY);
+                showMsg("⛈️ Empieza a llover... se forma una tormenta en el horizonte.", "#95a5a6");
             }
         }
         return;
     }
     storm.x += storm.vx; storm.y += storm.vy; storm.life--;
-    if (dist(player.gX, player.gY, storm.x, storm.y) < storm.r) {
-        player.gX += storm.vx * 2; player.gY += storm.vy * 2; // el viento empuja el barco
-        if (++storm.dmgT > 120) { storm.dmgT = 0; player.hp = Math.max(1, player.hp - 1); showMsg("⛈️ ¡La tormenta daña tu barco!", "#e67e22"); }
+    const z = getStormZone(player.gX, player.gY);
+    if (z !== storm.zone) {
+        storm.zone = z;
+        if (z === 'eye') showMsg("🌪️ ¡Entraste al ojo de la tormenta!", "#c0392b");
+        else if (z === 'strong') showMsg("⛈️ Entraste en la tormenta fuerte.", "#e67e22");
+        else showMsg("🌧️ Te alejaste de la tormenta fuerte; solo llueve.", "#95a5a6");
     }
-    if (storm.life <= 0) { storm = null; showMsg("⛈️ La tormenta se disipa.", "#95a5a6"); }
+    if (z === 'eye') {
+        player.gX += storm.vx * 3.2; player.gY += storm.vy * 3.2; // viento muy fuerte
+        if (++storm.dmgT >= 90) { storm.dmgT = 0; player.hp = Math.max(1, player.hp - 2); vibrate(80); showMsg("⛈️ ¡El ojo de la tormenta golpea tu casco!", "#e74c3c"); }
+    } else if (z === 'strong') {
+        player.gX += storm.vx * 1.6; player.gY += storm.vy * 1.6; // viento moderado
+        if (++storm.dmgT >= 240) { storm.dmgT = 0; player.hp = Math.max(1, player.hp - 1); showMsg("⛈️ La tormenta daña levemente tu barco.", "#e67e22"); }
+    } else {
+        storm.dmgT = 0;
+    }
+    if (storm.life <= 0) { storm = null; showMsg("☀️ Dejó de llover, la tormenta se disipó.", "#95a5a6"); }
 }
 
 // === MENÚS ===
@@ -777,7 +811,11 @@ function setDestinationFromScreen(clientX, clientY) {
 function openMap() { pauseGame(); gameState = STATE.MAP; ui.controls.style.display = 'none'; ui.actionBtn.style.display = 'none'; ui.mapScreen.classList.add('visible'); mapCam = { x: 0, y: 0, zoom: 1 }; updateDestBtn(); drawFullMap(); }
 function closeMap() { ui.mapScreen.classList.remove('visible'); ui.controls.style.display = 'flex'; gameState = STATE.ROAMING; resumeGame(); }
 function goToMainMenu() {
-    paused = false;
+    paused = false; resolving = false;
+    enemies = []; rocks = []; islands = []; projectiles = []; wakeParticles = []; explosions = [];
+    sinkingEnemy = null; battleEnemy = null; storm = null; bounty = null; ultratumba = false; ultratumbaTimer = 0;
+    player.speed = 0; player.isSailing = false; ui.anchorBtn.classList.remove('sailing');
+    resetKeys();
     ui.mapScreen.classList.remove('visible'); ui.controls.style.display = 'none'; ui.actionBtn.style.display = 'none'; ui.fireControls.style.display = 'none';
     gameState = STATE.MENU; exitLandscape(); showMain();
 }
@@ -820,6 +858,19 @@ function drawFullMap() {
     const cx = mapCanvas.width / 2, cy = mapCanvas.height / 2, z = mapCam.zoom;
     mapCtx.translate(cx + mapCam.x, cy + mapCam.y); mapCtx.scale(z, z); mapCtx.translate(-cx, -cy);
     const scale = cx / 70000;   // el mundo real llega a ~60000
+    if (storm) {
+        // Gris más claro en todo el mapa (lluvia lejana)
+        mapCtx.fillStyle = 'rgba(185, 195, 208, 0.16)';
+        mapCtx.fillRect(-mapCanvas.width * 4, -mapCanvas.height * 4, mapCanvas.width * 9, mapCanvas.height * 9);
+        const sx = cx + storm.x * scale, sy = cy + storm.y * scale;
+        // Gris claro: tormenta fuerte
+        mapCtx.fillStyle = 'rgba(120, 132, 148, 0.34)';
+        mapCtx.beginPath(); mapCtx.arc(sx, sy, storm.strongR * scale, 0, Math.PI * 2); mapCtx.fill();
+        // Gris oscuro: ojo de la tormenta
+        mapCtx.fillStyle = 'rgba(35, 42, 52, 0.68)';
+        mapCtx.beginPath(); mapCtx.arc(sx, sy, storm.eyeR * scale, 0, Math.PI * 2); mapCtx.fill();
+        mapCtx.textAlign = "center"; mapCtx.font = `${12 / z}px Arial`; mapCtx.fillText("⛈️", sx, sy + 4 / z);
+    }
     ports.forEach(p => {
         const mx = cx + p.x * scale, my = cy + p.y * scale;
         mapCtx.fillStyle = { home: "#f1c40f", big: "#e67e22", med: "#ecf0f1", small: "#bdc3c7" }[p.type] || "#ecf0f1";
@@ -1035,11 +1086,6 @@ function sinkShipRoaming(e, byPlayer) {
 }
 
 // === BATALLA (arena) ===
-// La arena es solo para peleas importantes: trampas de naufragio, el Cazador y el
-// Fantasma (duelos 1 a 1). Las peleas normales son en mar abierto. Para combates
-// múltiples futuros (misiones de conquista, asaltos a puertos) la base está en la
-// variante de arena de tres (parche_arena_tres.py): el bucle de batalla itera
-// sobre todos los enemigos en vez de un solo battleEnemy.
 function startBattle(e) {
     if (isNaN(e.x)) return;
     resolving = false; lastBattleType = e.type;
@@ -1084,7 +1130,7 @@ function playerDefeat() {
     resolving = true;
     const g = player.inventory.gold;
     player.inventory.gold = Math.floor(g / 2); lostGold = g - player.inventory.gold;
-    player.upgrades = { sails: 0, hull: 0, cannons: 0, frontCannon: false, rearCannon: false };
+    player.upgrades = { sails: 0, hull: 0, cannons: 0, blades: 0, resistance: 0, frontCannon: false, rearCannon: false };
     player.hp = player.maxHp;
     saveGame(true); sfx('sink'); vibrate(400);
     endBattle(false, false);
@@ -1116,9 +1162,6 @@ function endBattle(win, escaped, whoEscaped, gold = 0, rum = 0, maps = 0, winMsg
 }
 
 // === PUERTO / ASTILLERO ===
-// Precios segun el puerto: el ron es barato en los pueblitos y caro en las ciudades;
-// en los puertos chicos casi no hay astillero y la reparacion cuesta el doble;
-// solo en los puertos grandes venden mapas del tesoro.
 const portRumPrice = () => currentPort ? (currentPort.type === 'small' ? 8 : currentPort.type === 'big' ? 12 : 10) : 10;
 const portRepairPrice = () => currentPort && currentPort.type === 'small' ? 2 : 1;
 function renderPortMenu(screen, msg, col) {
@@ -1359,16 +1402,20 @@ function update() {
     if (gameState === STATE.ROAMING || gameState === STATE.BATTLE) {
         let spd = maxSpeed() * Math.max(0.4, player.hp / player.maxHp);
         if (player.inventory.rum <= 0) spd *= 0.5;
-        const inStormP = storm && gameState === STATE.ROAMING && dist(player.gX, player.gY, storm.x, storm.y) < storm.r;
-        if (inStormP) {
-            spd *= 0.65;
-            if (player.speed > 0.1) player.angle += Math.sin(gameTime * 0.65) * 0.008 + (storm.vx - storm.vy) * 0.007;
+        const pZone = gameState === STATE.ROAMING ? getStormZone(player.gX, player.gY) : null;
+        if (pZone === 'eye') {
+            spd *= 0.55;
+            if (player.speed > 0.1) player.angle += Math.sin(gameTime * 1.1) * 0.017 + Math.cos(gameTime * 0.43) * 0.011;
+        } else if (pZone === 'strong') {
+            spd *= 0.75;
+            if (player.speed > 0.1) player.angle += Math.sin(gameTime * 0.7) * 0.008 + (storm.vx - storm.vy) * 0.004;
         }
         if (player.isSailing && player.speed < spd) player.speed += player.accel;
         else if (player.isSailing && player.speed > spd) player.speed = Math.max(spd, player.speed - 0.04);
         else if (!player.isSailing && player.speed > 0) player.speed -= 0.05;
-        if (keys.Left) player.angle -= 0.035;
-        if (keys.Right) player.angle += 0.035;
+        const turnRate = pZone === 'eye' ? 0.024 : pZone === 'strong' ? 0.029 : 0.035;
+        if (keys.Left) player.angle -= turnRate;
+        if (keys.Right) player.angle += turnRate;
         player.gX += Math.sin(player.angle) * player.speed; player.gY -= Math.cos(player.angle) * player.speed;
         if (isNaN(player.speed)) player.speed = 0;
         if (player.speed > 0.3) wakeParticles.push({ x: player.gX - Math.sin(player.angle) * 30, y: player.gY + Math.cos(player.angle) * 30, life: 1, size: Math.random() * 3 + 3 });
@@ -1394,7 +1441,7 @@ function update() {
         if (!inRange) ui.actionBtn.style.display = 'none';
         islands.forEach(i => pushOut(i.x, i.y, i.radius - 20, i.radius - 15, -0.5));
         if (destination && dist(player.gX, player.gY, destination.x, destination.y) < 260) { destination = null; updateDestBtn(); showMsg("📍 ¡Destino alcanzado!", "#2ecc71"); sfx('coin'); }
-        if (rumorMark && dist(player.gX, player.gY, rumorMark.x, rumorMark.y) < 300 && !wrecks.some(w => w.state === 'uninspected' && dist(player.gX, player.gY, w.x, w.y) < 500)) { rumorMark = null; showMsg("No hay nada aquí... el rumor era falso.", "#e74c3c"); }
+        if (rumorMark && dist(rumorMark.x, rumorMark.y, w => w) !== 0 && dist(rumorMark.x, rumorMark.y, player.gX, player.gY) < 300 && !wrecks.some(w => w.state === 'uninspected' && dist(player.gX, player.gY, w.x, w.y) < 500)) { rumorMark = null; showMsg("No hay nada aquí... el rumor era falso.", "#e74c3c"); }
         rocks.forEach(r => {
             if (!pushOut(r.x, r.y, r.size - 15, r.size, -0.8)) return;
             player.hp -= 1; vibrate(100); sfx('bump');
@@ -1418,15 +1465,18 @@ function update() {
             ui.fireControls.style.display = inOpenSeaFight() ? 'flex' : 'none';
         }
         enemies.forEach(e => {
-            const inStormE = storm && dist(e.x, e.y, storm.x, storm.y) < storm.r;
+            if (e.ramCD > 0) e.ramCD--;
+            const eZone = getStormZone(e.x, e.y);
             if (e.type === 'hunter' || e.type === 'ghost') {
                 if (e.type === 'ghost') e.speed = Math.max(2.2, maxSpeed() + 0.25);    // siempre más rápido que tú
                 const targetA = Math.atan2(player.gX - e.x, -(player.gY - e.y));
                 let diff = targetA - e.angle; while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2; e.angle += diff * 0.05;
-                if (inStormE) e.angle += Math.sin(gameTime * 0.65 + (e.size || 20)) * 0.008 + (storm.vx - storm.vy) * 0.007;
-                const sSpd = inStormE ? e.speed * 0.65 : e.speed;
-                e.x += Math.sin(e.angle) * sSpd + (inStormE ? storm.vx * 1.5 : 0);
-                e.y -= Math.cos(e.angle) * sSpd - (inStormE ? storm.vy * 1.5 : 0);
+                if (eZone === 'eye') e.angle += Math.sin(gameTime * 1.1 + (e.size || 20)) * 0.015;
+                else if (eZone === 'strong') e.angle += Math.sin(gameTime * 0.7 + (e.size || 20)) * 0.008;
+                const sSpd = eZone === 'eye' ? e.speed * 0.55 : eZone === 'strong' ? e.speed * 0.75 : e.speed;
+                const drift = eZone === 'eye' ? 2.4 : eZone === 'strong' ? 1.2 : 0;
+                e.x += Math.sin(e.angle) * sSpd + (drift ? storm.vx * drift : 0);
+                e.y += -Math.cos(e.angle) * sSpd + (drift ? storm.vy * drift : 0);
             } else {
                 // IA de barcos: cada uno navega a su antojo segun su tipo
                 if (--e.aiTimer <= 0 && e.ai !== 'skirmish') { e.ai = pickShipAI(e); e.chase = false; e.aiTimer = 360 + Math.random() * 360; if (e.ai === 'approach' && !canJoinFight(e)) e.ai = 'avoid'; } // batallas de tres como máximo
@@ -1470,17 +1520,45 @@ function update() {
                     }
                 }
                 combatFireAtPlayer(e); // si pelea contigo, también te dispara en mar abierto
-                if (inStormE) {
-                    spd *= 0.65;
-                    e.angle += Math.sin(gameTime * 0.65 + (e.size || 20)) * 0.008 + (storm.vx - storm.vy) * 0.007;
-                    e.x += storm.vx * 1.5; e.y += storm.vy * 1.5;
+                if (eZone === 'eye') {
+                    spd *= 0.55;
+                    e.angle += Math.sin(gameTime * 1.1 + (e.size || 20)) * 0.015;
+                    e.x += storm.vx * 2.4; e.y += storm.vy * 2.4;
+                } else if (eZone === 'strong') {
+                    spd *= 0.75;
+                    e.angle += Math.sin(gameTime * 0.7 + (e.size || 20)) * 0.008;
+                    e.x += storm.vx * 1.2; e.y += storm.vy * 1.2;
                 }
                 e.x += Math.sin(e.angle) * spd; e.y -= Math.cos(e.angle) * spd;
             }
             collideObstacles(e); // los barcos no atraviesan islas, puertos ni islas rocosas
-            if (gameState === STATE.ROAMING && dist(e.x, e.y, player.gX, player.gY) < 60 + e.size) {
+            const hitR = 32 + e.size;
+            if (gameState === STATE.ROAMING && dist(e.x, e.y, player.gX, player.gY) < hitR) {
                 if (e.type === 'hunter' || e.type === 'ghost') startBattle(e); // la arena sigue para el Cazador y el Fantasma
-                else if (e.ai !== 'skirmish' && canJoinFight(e)) { if (player.upgrades.blades) { e.hp -= 10 * player.upgrades.blades; if (e.hp <= 0) { sinkShipRoaming(e, true); return; } } e.ai = 'approach'; e.aiTimer = 360 + Math.random() * 360; e.reloadP = 90 + Math.random() * 60; } // tocar un barco en mar abierto: te ataca ahí mismo (las navajas hacen daño al embestir)
+                else {
+                    // Separación física real + rebote + daño mutuo con enfriamiento (igual que en arena)
+                    const a = Math.atan2(e.y - player.gY, e.x - player.gX);
+                    const overlap = hitR - dist(e.x, e.y, player.gX, player.gY) + 6;
+                    player.gX -= Math.cos(a) * (overlap * 0.5); player.gY -= Math.sin(a) * (overlap * 0.5);
+                    e.x += Math.cos(a) * (overlap * 0.5); e.y += Math.sin(a) * (overlap * 0.5);
+                    player.speed = -0.3;
+                    if (!e.ramCD) {
+                        e.ramCD = 30;
+                        vibrate(100); sfx('hit');
+                        spawnExplosion((player.gX + e.x) * 0.5, (player.gY + e.y) * 0.5, '#e67e22');
+                        player.hp -= Math.max(0, 10 - 2 * (player.upgrades.resistance || 0));
+                        e.hp -= 10 + 10 * (player.upgrades.blades || 0);
+                        if (e.hp <= 0) { sinkShipRoaming(e, true); return; }
+                        if (player.hp <= 0 && !resolving) {
+                            resolving = true; gameState = STATE.SINKING;
+                            showMsg("¡HUNDIDO EN COMBATE!", "#c0392b"); setTimeout(playerDefeat, 2000);
+                            return;
+                        }
+                    }
+                    if (e.ai !== 'skirmish' && e.ai !== 'approach' && canJoinFight(e)) {
+                        e.ai = 'approach'; e.aiTimer = 360 + Math.random() * 360; e.reloadP = 90 + Math.random() * 60;
+                    }
+                }
             }
         });
         // Colisión entre barcos en mar abierto: se empujan y se desvían, no se atraviesan
@@ -1661,20 +1739,35 @@ function draw() {
         ctx.fillStyle = 'rgba(39,174,96,0.8)'; ctx.beginPath(); ctx.arc(mx - 8, my - 5, 6, 0, Math.PI * 2); ctx.arc(mx + 9, my + 8, 4, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Tormenta (beta 0.5.0): nube oscura en el mar y lluvia si estás dentro
+    // Tormenta (beta 0.6.0): abarca todo el mapa; cambia lluvia y oscuridad según la zona
     if (storm && gameState !== STATE.MENU) {
-        const sp = getScr(storm.x, storm.y);
-        ctx.fillStyle = 'rgba(40,50,70,0.45)';
-        ctx.beginPath(); ctx.arc(sp.x, sp.y, storm.r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(40,50,70,0.25)';
-        ctx.beginPath(); ctx.arc(sp.x, sp.y, storm.r * 0.7, 0, Math.PI * 2); ctx.fill();
-        if (dist(player.gX, player.gY, storm.x, storm.y) < storm.r) {
-            ctx.fillStyle = 'rgba(20,30,50,0.25)'; ctx.fillRect(0, 0, W, H); // menos visibilidad
+        const z = getStormZone(player.gX, player.gY);
+        if (z === 'eye') {
+            ctx.fillStyle = 'rgba(15,20,32,0.40)'; ctx.fillRect(0, 0, W, H);
+            if (Math.random() < 0.008) { ctx.fillStyle = 'rgba(220,235,255,0.18)'; ctx.fillRect(0, 0, W, H); }
+            ctx.strokeStyle = 'rgba(195,215,245,0.65)'; ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            for (let i = 0; i < 110; i++) {
+                const rx = (i * 97 + gameTime * 520) % (W + 30), ry = (i * 53 + gameTime * 880) % (H + 30);
+                ctx.moveTo(rx, ry); ctx.lineTo(rx - 12, ry + 24);
+            }
+            ctx.stroke();
+        } else if (z === 'strong') {
+            ctx.fillStyle = 'rgba(25,35,52,0.22)'; ctx.fillRect(0, 0, W, H);
             ctx.strokeStyle = 'rgba(180,200,230,0.5)'; ctx.lineWidth = 1;
             ctx.beginPath();
-            for (let i = 0; i < 60; i++) {
+            for (let i = 0; i < 65; i++) {
                 const rx = (i * 97 + gameTime * 400) % (W + 20), ry = (i * 53 + gameTime * 700) % (H + 20);
                 ctx.moveTo(rx, ry); ctx.lineTo(rx - 8, ry + 18);
+            }
+            ctx.stroke();
+        } else {
+            // Muy lejos de la tormenta: solo lluvia ligera
+            ctx.strokeStyle = 'rgba(185,210,238,0.34)'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < 28; i++) {
+                const rx = (i * 131 + gameTime * 180) % (W + 20), ry = (i * 71 + gameTime * 520) % (H + 20);
+                ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 13);
             }
             ctx.stroke();
         }
@@ -1699,11 +1792,20 @@ function draw() {
         ctx.beginPath(); ctx.arc(mid, mid, mid, 0, Math.PI * 2); ctx.clip();
         ctx.fillStyle = 'rgba(10,30,50,0.7)'; ctx.fillRect(0, 0, ms, ms);
         if (sprites.minimap.complete && sprites.minimap.naturalWidth > 0) ctx.drawImage(sprites.minimap, 0, 0, ms, ms);
+        // Zonas de tormenta en el radar: gris más claro (lejos), gris claro (tormenta fuerte), gris oscuro (ojo)
+        if (storm) {
+            const dx = (storm.x - player.gX) * scale, dy = (storm.y - player.gY) * scale;
+            ctx.fillStyle = 'rgba(185, 195, 208, 0.24)'; ctx.fillRect(0, 0, ms, ms);
+            ctx.fillStyle = 'rgba(115, 126, 142, 0.44)';
+            ctx.beginPath(); ctx.arc(mid + dx, mid + dy, storm.strongR * scale, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(32, 38, 48, 0.74)';
+            ctx.beginPath(); ctx.arc(mid + dx, mid + dy, storm.eyeR * scale, 0, Math.PI * 2); ctx.fill();
+            if (Math.hypot(dx, dy) < mid - 12) { ctx.fillStyle = 'white'; ctx.font = '10px Arial'; ctx.fillText('⛈️', mid + dx - 5, mid + dy + 4); }
+        }
         const inMap = (dx, dy) => Math.hypot(dx, dy) < mid - 12;
         ports.forEach(p => { const dx = (p.x - player.gX) * scale, dy = (p.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.fillStyle = "black"; ctx.font = "italic bold 8px serif"; ctx.textAlign = "center"; ctx.fillText(p.name, mid + dx, mid + dy - 8); ctx.font = "12px Arial"; ctx.fillText("⚓", mid + dx, mid + dy + 5); } });
         treasureSites.forEach(t => { const dx = (t.x - player.gX) * scale, dy = (t.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.font = "10px Arial"; ctx.fillText("🏝️", mid + dx - 4, mid + dy + 4); if (t.active) { ctx.fillStyle = "red"; ctx.font = "bold 8px Arial"; ctx.fillText("X", mid + dx - 2, mid + dy + 2); } } });
         wrecks.forEach(w => { const dx = (w.x - player.gX) * scale, dy = (w.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.font = "10px Arial"; ctx.fillText(w.state === 'uninspected' ? "💀" : "⚓", mid + dx - 5, mid + dy + 4); } });
-        if (storm) { const dx = (storm.x - player.gX) * scale, dy = (storm.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.fillStyle = 'rgba(100,110,130,0.6)'; ctx.beginPath(); ctx.arc(mid + dx, mid + dy, Math.max(4, storm.r * scale), 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'white'; ctx.font = '10px Arial'; ctx.fillText('⛈️', mid + dx - 5, mid + dy + 4); } }
         if (rumorMark) { const dx = (rumorMark.x - player.gX) * scale, dy = (rumorMark.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.fillStyle = "red"; ctx.font = "bold 12px Arial"; ctx.fillText("X", mid + dx - 4, mid + dy + 4); } }
         islands.forEach(i => { const dx = (i.x - player.gX) * scale, dy = (i.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.font = "10px Arial"; ctx.fillText("🏝️", mid + dx - 4, mid + dy + 4); } });
         enemies.forEach(e => {
