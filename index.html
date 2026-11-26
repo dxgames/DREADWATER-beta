@@ -55,8 +55,8 @@ h2{color:#f1c40f;text-align:center;margin:0 0 15px;text-shadow:2px 2px 0 #000;te
 #dialog-modal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#2c3e50;border:2px solid #f1c40f;padding:20px;border-radius:10px;color:#fff;z-index:300;display:none;text-align:center;width:80%}
 /* MENSAJES */
 #msg-area{position:absolute;top:15%;width:100%;text-align:center;pointer-events:none;z-index:60}
-.pop-msg{font-size:24px;font-weight:bold;color:#fff;text-shadow:2px 2px 0 #000;animation:fadeUp 2.5s forwards;margin-bottom:5px}
-@keyframes fadeUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+.pop-msg{font-size:24px;font-weight:bold;color:#fff;text-shadow:2px 2px 0 #000;animation:fadeUp 4.5s forwards;margin-bottom:5px}
+@keyframes fadeUp{0%{opacity:1;transform:translateY(0)}55%{opacity:1;transform:translateY(-18px)}100%{opacity:0;transform:translateY(-50px)}}
 .result-content{text-align:center;color:#fff}
 .btn-ui{background:#d35400;color:#fff;border:2px solid #fff;padding:15px 40px;font-size:18px;margin-top:20px;cursor:pointer;border-radius:5px;font-weight:bold}
 </style>
@@ -510,7 +510,7 @@ function loadGame() {
     visitedPorts = Array.isArray(d.visited) ? d.visited : [];
     activeMission = d.mission && ['cargamento', 'caza', 'botin', 'pasajero'].includes(d.mission.kind) ? d.mission : null;
     if (activeMission) {
-        if (activeMission.kind === 'caza') spawnHuntTarget(activeMission); // el objetivo vuelve a aparecer
+        if (activeMission.kind === 'caza' && !activeMission.sunk) spawnHuntTarget(activeMission); // el objetivo vuelve a aparecer
         else if (activeMission.kind === 'botin' && activeMission.collected) { const p = ports.find(q => q.name === activeMission.returnPort); if (p) destination = { x: p.x, y: p.y }; }
         else if (activeMission.kind === 'botin' && activeMission.site) destination = { x: activeMission.site.x, y: activeMission.site.y };
         else if (activeMission.kind === 'cargamento' || activeMission.kind === 'pasajero') { const p = ports.find(q => q.name === activeMission.dest); if (p) destination = { x: p.x, y: p.y }; }
@@ -526,7 +526,7 @@ let huntIdCounter = 0, bounty = null; // bounty: te cazan por robar (un día de 
 function missionText(m) {
     const dTxt = m.dist ? ` (${fmtDist(m.dist)})` : '';
     if (m.kind === 'cargamento') return `📦 Lleva el cargamento a ${m.dest}${dTxt}`;
-    if (m.kind === 'caza') return `⚔️ Caza a "${m.name}" (barco ${m.ship === 'big' ? 'grande' : 'mediano'})${dTxt}`;
+    if (m.kind === 'caza') return m.sunk ? `⚔️ Cobra la caza de "${m.name}" en un puerto` : `⚔️ Caza a "${m.name}" (barco ${m.ship === 'big' ? 'grande' : 'mediano'})${dTxt}`;
     if (m.kind === 'botin') return m.collected ? `💎 Devuelve el botín a ${m.returnPort}` : `💎 Investiga la isla y lleva el botín a ${m.returnPort}${dTxt}`;
     return `🧑‍✈️ Lleva a ${m.name} a ${m.dest}${dTxt}`;
 }
@@ -553,22 +553,40 @@ function genMission() {
     const reward = Math.round((70 + d * 0.017 + Math.random() * 40) / 10) * 10;
     return { kind: 'pasajero', dest: dest.name, dist: d, name: PASSENGER_NAMES[Math.floor(Math.random() * PASSENGER_NAMES.length)], reward };
 }
-function completeMission() {
+function canCompleteMission() {
+    if (!activeMission || !currentPort) return false;
+    if (activeMission.kind === 'cargamento' || activeMission.kind === 'pasajero') return currentPort.name === activeMission.dest;
+    if (activeMission.kind === 'botin') return !!activeMission.collected && currentPort.name === activeMission.returnPort;
+    if (activeMission.kind === 'caza') return !!activeMission.sunk;
+    return false;
+}
+function completeMission(screen = 'main') {
     if (!activeMission) return;
+    if (!canCompleteMission()) {
+        let reason = 'Aún no cumples el objetivo de la misión';
+        if (activeMission.kind === 'cargamento' || activeMission.kind === 'pasajero') reason = `Debes entregar en ${activeMission.dest}`;
+        else if (activeMission.kind === 'botin') reason = activeMission.collected ? `Debes entregar el botín en ${activeMission.returnPort}` : 'Primero recoge el botín de la isla';
+        else if (activeMission.kind === 'caza') reason = `Aún no has hundido a "${activeMission.name}"`;
+        return renderPortMenu(screen, reason, '#e67e22');
+    }
     const m = activeMission; activeMission = null; destination = null;
     player.inventory.gold += m.reward;
     showMsg(`✅ ¡MISIÓN COMPLETA! +${m.reward} ORO`, "#2ecc71"); sfx('coin');
+    renderPortMenu(screen, `✅ ¡Trabajo terminado! +${m.reward} ORO`, '#2ecc71');
 }
 function huntTargetEnemy() {
-    return activeMission && activeMission.kind === 'caza' ? enemies.find(e => e.targetId === activeMission.targetId) : null;
+    return activeMission && activeMission.kind === 'caza' && !activeMission.sunk ? enemies.find(e => e.targetId === activeMission.targetId) : null;
 }
 function spawnHuntTarget(m) {
     const a = Math.random() * Math.PI * 2, d = m.dist || (1500 + Math.random() * 500);
     const hp = m.ship === 'big' ? 150 : 100, size = m.ship === 'big' ? 30 : 25, spd = m.ship === 'big' ? 1.0 : 1.2;
     enemies.push({ x: player.gX + Math.cos(a) * d, y: player.gY + Math.sin(a) * d, angle: Math.random() * Math.PI * 2, hp, maxHp: hp, size, type: m.ship, reload: 60, canFlee: true, speed: spd, ai: 'sail', aiTimer: 360, wanderA: 0, threeWay: false, foe: null, huntTarget: true, targetId: m.targetId });
 }
-function onShipSunk(e) { // caza: hundir al objetivo marcado
-    if (activeMission && activeMission.kind === 'caza' && e.targetId === activeMission.targetId) completeMission();
+function onShipSunk(e) { // caza: hundir al objetivo marcado y cobrar en puerto
+    if (activeMission && activeMission.kind === 'caza' && e.targetId === activeMission.targetId) {
+        activeMission.sunk = true; destination = null;
+        showMsg(`⚔️ ¡Hundiste a "${activeMission.name}"! Ve a un puerto a completar la misión`, "#2ecc71");
+    }
 }
 function acceptMission(i) {
     const m = offeredMissions[i];
@@ -667,7 +685,7 @@ function showHints() {
     try { seen = localStorage.getItem(HINT_KEY); localStorage.setItem(HINT_KEY, '1'); } catch (e) {}
     if (seen) return;
     ["⚓ Toca el ancla para zarpar", "🛌 Descansa en un puerto para guardar", "⏸️ Toca el minimapa para pausar y ver el mapa"]
-        .forEach((t, i) => setTimeout(() => showMsg(t, "#ecf0f1"), 2300 * (i + 1)));
+        .forEach((t, i) => setTimeout(() => showMsg(t, "#ecf0f1"), 3400 * (i + 1)));
 }
 function showSettings() { hideAllMenus(); ui.settingsMenu.classList.add('visible'); }
 function showAbout() { hideAllMenus(); ui.aboutMenu.classList.add('visible'); }
@@ -836,7 +854,7 @@ function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 function fmtDist(d) { return d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', ',') + ' km'; }
 function showMsg(text, color) {
     const el = document.createElement('div'); el.className = 'pop-msg'; el.innerText = text; el.style.color = color || 'white';
-    $('msg-area').appendChild(el); setTimeout(() => el.remove(), 2500);
+    $('msg-area').appendChild(el); setTimeout(() => el.remove(), 4500);
 }
 function spawnExplosion(x, y, color) {
     for (let i = 0; i < 20; i++) explosions.push({ x, y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, size: Math.floor(Math.random() * 8 + 4), life: 1.5, color: color || '#e67e22' });
@@ -1112,8 +1130,11 @@ function renderPortMenu(screen, msg, col) {
         : `<div class="port-option" onclick="buyUpgrade('${k}')"><span>${icon} ${name} (${lv[k]}/${U[k].max})</span><span>${U[k].cost}G</span></div>`;
     let h = stats;
     if (activeMission) h += `<div class="npc-text" style="color:#f1c40f">📜 Misión: ${missionText(activeMission)} (${activeMission.reward}G)</div>`;
+    const completeBtn = sc => activeMission
+        ? `<div class="port-option" style="${canCompleteMission() ? 'background:#1e8449;color:#fff;border-color:#2ecc71' : 'opacity:.75'}" onclick="completeMission('${sc}')"><span>✅ Completar misión</span><span>+${activeMission.reward}G</span></div>`
+        : '';
     if (screen === 'main') {
-        h += say("") + `<div class="port-option" onclick="talkDialog()"><span>🗣️ Hablar</span></div>
+        h += say("") + completeBtn('main') + `<div class="port-option" onclick="talkDialog()"><span>🗣️ Hablar</span></div>
             <div class="port-option" onclick="rumorDialog()"><span>👂 Escuchar rumores</span><span>100G</span></div>
             <div class="port-option" onclick="renderPortMenu('tavern')"><span>🍺 Taberna</span></div>
             <div class="port-option" onclick="renderPortMenu('shipyard')"><span>🛠️ Astillero</span></div>
@@ -1127,7 +1148,7 @@ function renderPortMenu(screen, msg, col) {
     } else if (screen === 'missions') {
         h += say('"¿Trabajo? Mira el tablón."');
         if (activeMission) {
-            h += `<div class="port-option" style="opacity:.8"><span>📜 ${missionText(activeMission)}</span><span>${activeMission.reward}G</span></div>`;
+            h += `<div class="port-option" style="opacity:.8"><span>📜 ${missionText(activeMission)}</span><span>${activeMission.reward}G</span></div>` + completeBtn('missions');
             if (activeMission.kind === 'cargamento') h += `<div class="port-option" onclick="stealMission()"><span>💰 Quedarse el cargamento</span><span>+${activeMission.cargoValue}G</span></div>`;
             if (activeMission.kind === 'botin' && activeMission.collected) h += `<div class="port-option" onclick="stealMission()"><span>💰 Quedarse el botín</span><span>+${activeMission.loot}G</span></div>`;
             h += `<div class="port-option" onclick="abandonMission()"><span>❌ Abandonar misión</span></div>`;
@@ -1238,8 +1259,6 @@ function enterPort(port) {
     ui.portTitle.innerText = port.name;
     offeredMissions = [];
     if (destination && dist(port.x, port.y, destination.x, destination.y) < 400) { destination = null; updateDestBtn(); }
-    if (activeMission && (activeMission.kind === 'cargamento' || activeMission.kind === 'pasajero') && port.name === activeMission.dest) completeMission();
-    if (activeMission && activeMission.kind === 'botin' && activeMission.collected && port.name === activeMission.returnPort) completeMission();
     // Primera visita: bonus de descubrimiento
     let first = false;
     if (!visitedPorts.includes(port.name)) { visitedPorts.push(port.name); player.inventory.gold += 100; first = true; }
@@ -1340,7 +1359,13 @@ function update() {
     if (gameState === STATE.ROAMING || gameState === STATE.BATTLE) {
         let spd = maxSpeed() * Math.max(0.4, player.hp / player.maxHp);
         if (player.inventory.rum <= 0) spd *= 0.5;
+        const inStormP = storm && gameState === STATE.ROAMING && dist(player.gX, player.gY, storm.x, storm.y) < storm.r;
+        if (inStormP) {
+            spd *= 0.65;
+            if (player.speed > 0.1) player.angle += Math.sin(gameTime * 0.65) * 0.008 + (storm.vx - storm.vy) * 0.007;
+        }
         if (player.isSailing && player.speed < spd) player.speed += player.accel;
+        else if (player.isSailing && player.speed > spd) player.speed = Math.max(spd, player.speed - 0.04);
         else if (!player.isSailing && player.speed > 0) player.speed -= 0.05;
         if (keys.Left) player.angle -= 0.035;
         if (keys.Right) player.angle += 0.035;
@@ -1393,11 +1418,15 @@ function update() {
             ui.fireControls.style.display = inOpenSeaFight() ? 'flex' : 'none';
         }
         enemies.forEach(e => {
+            const inStormE = storm && dist(e.x, e.y, storm.x, storm.y) < storm.r;
             if (e.type === 'hunter' || e.type === 'ghost') {
                 if (e.type === 'ghost') e.speed = Math.max(2.2, maxSpeed() + 0.25);    // siempre más rápido que tú
                 const targetA = Math.atan2(player.gX - e.x, -(player.gY - e.y));
                 let diff = targetA - e.angle; while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2; e.angle += diff * 0.05;
-                e.x += Math.sin(e.angle) * e.speed; e.y -= Math.cos(e.angle) * e.speed;
+                if (inStormE) e.angle += Math.sin(gameTime * 0.65 + (e.size || 20)) * 0.008 + (storm.vx - storm.vy) * 0.007;
+                const sSpd = inStormE ? e.speed * 0.65 : e.speed;
+                e.x += Math.sin(e.angle) * sSpd + (inStormE ? storm.vx * 1.5 : 0);
+                e.y -= Math.cos(e.angle) * sSpd - (inStormE ? storm.vy * 1.5 : 0);
             } else {
                 // IA de barcos: cada uno navega a su antojo segun su tipo
                 if (--e.aiTimer <= 0 && e.ai !== 'skirmish') { e.ai = pickShipAI(e); e.chase = false; e.aiTimer = 360 + Math.random() * 360; if (e.ai === 'approach' && !canJoinFight(e)) e.ai = 'avoid'; } // batallas de tres como máximo
@@ -1441,6 +1470,11 @@ function update() {
                     }
                 }
                 combatFireAtPlayer(e); // si pelea contigo, también te dispara en mar abierto
+                if (inStormE) {
+                    spd *= 0.65;
+                    e.angle += Math.sin(gameTime * 0.65 + (e.size || 20)) * 0.008 + (storm.vx - storm.vy) * 0.007;
+                    e.x += storm.vx * 1.5; e.y += storm.vy * 1.5;
+                }
                 e.x += Math.sin(e.angle) * spd; e.y -= Math.cos(e.angle) * spd;
             }
             collideObstacles(e); // los barcos no atraviesan islas, puertos ni islas rocosas
