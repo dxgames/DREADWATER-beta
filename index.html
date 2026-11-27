@@ -51,6 +51,11 @@ h2{color:#f1c40f;text-align:center;margin:0 0 15px;text-shadow:2px 2px 0 #000;te
 .port-option{background:#34495e;color:#bdc3c7;border:1px solid #7f8c8d;padding:13px 10px;margin:7px 0;text-align:left;display:flex;justify-content:space-between;border-radius:5px;font-weight:bold;cursor:pointer;font-size:15px}
 .port-option:active{filter:brightness(1.35)}
 .port-option.active{background:#27ae60;color:#fff;border-color:#2ecc71;justify-content:center}
+.port-option.locked{opacity:.55;cursor:pointer}
+.skin-row{display:flex;align-items:center;gap:8px}
+.skin-thumb{width:28px;height:28px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;background:rgba(0,0,0,.35);border-radius:4px;padding:2px}
+.skin-info{display:flex;flex-direction:column;line-height:1.25}
+.skin-rarity{font-size:11px;font-weight:bold}
 .npc-text{font-style:italic;color:#f39c12;margin-bottom:10px;min-height:40px;text-align:center;padding:5px;font-size:14px}
 #dialog-modal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#2c3e50;border:2px solid #f1c40f;padding:20px;border-radius:10px;color:#fff;z-index:300;display:none;text-align:center;width:80%}
 /* MENSAJES */
@@ -387,9 +392,24 @@ const sprites = {}, audio = {};
 let currentMusic = null;
 const SPR = { normal: 'shipSmall', med: 'shipMed', big: 'shipBig', ghost: 'ghost', hunter: 'hunter' };
 
+const SHIP_SKINS = [
+    { id: 'original',  name: 'Original',         rarity: 'Estándar',   color: '#bdc3c7', price: 0,     path: 'images/sprites/barco-jugador.png',        sprite: 'player' },
+    { id: 'cobre',     name: 'Pirata de Cobre',  rarity: 'Común',      color: '#d35400', price: 10000, path: 'images/skins/barco-pirata-cobre.png',     sprite: 'skin_cobre' },
+    { id: 'carmesi',   name: 'Pirata Carmesí',   rarity: 'Poco Común', color: '#e74c3c', price: 15000, path: 'images/skins/barco-pirata-carmesi.png',   sprite: 'skin_carmesi' },
+    { id: 'esmeralda', name: 'Pirata Esmeralda', rarity: 'Raro',       color: '#2ecc71', price: 22000, path: 'images/skins/barco-pirata-esmeralda.png', sprite: 'skin_esmeralda' },
+    { id: 'glacial',   name: 'Pirata Glacial',   rarity: 'Raro',       color: '#5dade2', price: 28000, path: 'images/skins/barco-pirata-glacial.png',   sprite: 'skin_glacial' },
+    { id: 'volcanico', name: 'Pirata Volcánico', rarity: 'Épico',      color: '#e67e22', price: 35000, path: 'images/skins/barco-pirata-volcanico.png', sprite: 'skin_volcanico' },
+    { id: 'real',      name: 'Pirata Real',      rarity: 'Muy Raro',   color: '#f39c12', price: 42000, path: 'images/skins/barco-pirata-real.png',      sprite: 'skin_real',      reqBigPort: true },
+    { id: 'dorado',    name: 'Pirata Dorado',    rarity: 'Muy Raro',   color: '#f1c40f', price: 50000, path: 'images/skins/barco-pirata-dorado.png',    sprite: 'skin_dorado',    reqBigPort: true },
+    { id: 'nocturno',  name: 'Pirata Nocturno',  rarity: 'Muy Raro',   color: '#9b59b6', price: 55000, path: 'images/skins/barco-pirata-nocturno.png',  sprite: 'skin_nocturno',  reqBigPort: true, reqNight: true },
+    { id: 'espectral', name: 'Pirata Espectral', rarity: 'Muy Raro',   color: '#1abc9c', price: 60000, path: 'images/skins/barco-pirata-espectral.png', sprite: 'skin_espectral', reqBigPort: true, reqNight: true, reqUltratumba: true },
+    { id: 'fantasma',  name: 'Barco Fantasma',   rarity: 'Especial',   color: '#2ecc71', price: 0,     path: 'images/skins/barco-fantasma.png',         sprite: 'skin_fantasma',  secret: true }
+];
+
 (function loadAssets() {
     const imgs = {
         player: "images/sprites/barco-jugador.png",
+        shipDamaged: "images/skins/barco-danado.png",
         shipSmall: "images/sprites/barco-chico.png",
         shipMed: "images/sprites/barco-mediano.png",
         shipBig: "images/sprites/barco-grande.png",
@@ -405,6 +425,7 @@ const SPR = { normal: 'shipSmall', med: 'shipMed', big: 'shipBig', ghost: 'ghost
         gull: "images/sprites/gaviota-volando-sheet.png",
         wreck: "images/sprites/barco-naufragio.png"
     };
+    SHIP_SKINS.forEach(s => { imgs[s.sprite] = s.path; });
     for (const k in imgs) { const im = new Image(); im.onerror = () => { im._err = 1; }; im.src = imgs[k]; sprites[k] = im; }
     const tracks = {
         ambient: "audio/music/mar.mp3",
@@ -506,7 +527,9 @@ const player = {
     gX: 180, gY: 0, angle: Math.PI / 2, speed: 0, baseMaxSpeed: 1.9, accel: 0.03,
     hp: 100, maxHp: 100, isSailing: false, savedPos: { x: 180, y: 0 }, savedPosBattle: { x: 180, y: 0 },
     inventory: { gold: 50, rum: 10 }, reloadTimer: 0, mapCount: 0, rumConsumptionTimer: 0, spawnPort: "Desesperanza",
-    upgrades: { sails: 0, hull: 0, cannons: 0, blades: 0, resistance: 0, frontCannon: false, rearCannon: false }
+    upgrades: { sails: 0, hull: 0, cannons: 0, blades: 0, resistance: 0, frontCannon: false, rearCannon: false },
+    ownedSkins: ['original'],
+    equippedSkin: 'original'
 };
 const maxSpeed = () => player.baseMaxSpeed + player.upgrades.sails * 0.4;
 
@@ -578,7 +601,8 @@ const isNight = () => darkness() > 0.6;
 // === GUARDADO ===
 function saveGame(silent) {
     const d = { gold: player.inventory.gold, rum: player.inventory.rum, spawnX: player.savedPos.x, spawnY: player.savedPos.y,
-        port: player.spawnPort, upgrades: player.upgrades, maps: player.mapCount, treasures: treasureSites, wrecks: wrecks, rumor: rumorMark, visited: visitedPorts, mission: activeMission };
+        port: player.spawnPort, upgrades: player.upgrades, maps: player.mapCount, treasures: treasureSites, wrecks: wrecks, rumor: rumorMark, visited: visitedPorts, mission: activeMission,
+        ownedSkins: player.ownedSkins, equippedSkin: player.equippedSkin };
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (e) {}
     if (!silent) showMsg("¡CHECKPOINT GUARDADO!", "#2ecc71");
 }
@@ -599,6 +623,10 @@ function loadGame() {
     wrecks = Array.isArray(d.wrecks) ? d.wrecks : [];
     rumorMark = d.rumor && Number.isFinite(d.rumor.x) && Number.isFinite(d.rumor.y) ? d.rumor : null;
     visitedPorts = Array.isArray(d.visited) ? d.visited : [];
+    const validSkinIds = SHIP_SKINS.map(s => s.id);
+    player.ownedSkins = Array.isArray(d.ownedSkins) ? d.ownedSkins.filter(id => validSkinIds.includes(id)) : ['original'];
+    if (!player.ownedSkins.includes('original')) player.ownedSkins.unshift('original');
+    player.equippedSkin = (d.equippedSkin && player.ownedSkins.includes(d.equippedSkin)) ? d.equippedSkin : 'original';
     activeMission = d.mission && ['cargamento', 'caza', 'botin', 'pasajero'].includes(d.mission.kind) ? d.mission : null;
     if (activeMission) {
         if (activeMission.kind === 'caza' && !activeMission.sunk) spawnHuntTarget(activeMission); // el objetivo vuelve a aparecer
@@ -1295,11 +1323,34 @@ function renderPortMenu(screen, msg, col) {
         h += `<div class="port-option active" onclick="renderPortMenu('main')"><span>🔙 Volver</span></div>`;
     } else if (screen === 'shipyard') {
         const costRep = Math.floor((player.maxHp - player.hp) * portRepairPrice());
+        const visibleTotal = SHIP_SKINS.filter(s => !s.secret || player.ownedSkins.includes(s.id)).length;
         h += say('"¿Mejoras?"') + `<div class="port-option" onclick="repairShip()"><span>🔨 Reparar</span><span>${costRep}G</span></div>`
             + row('sails', '🚩', 'Velas') + row('hull', '🛡️', 'Casco') + row('cannons', '💣', 'Cañón') + row('blades', '🔪', 'Navajas') + row('resistance', '⛓️', 'Resistencia');
         if (!lv.frontCannon) h += `<div class="port-option" onclick="buyWeapon('front')"><span>🔴 Cañón Frontal</span><span>1100G</span></div>`;
         if (!lv.rearCannon) h += `<div class="port-option" onclick="buyWeapon('rear')"><span>⚫ Cañón Trasero</span><span>1100G</span></div>`;
+        h += `<div class="port-option" onclick="renderPortMenu('styles')"><span>🎨 Cambiar estilo del barco</span><span>${player.ownedSkins.length}/${visibleTotal}</span></div>`;
         h += `<div class="port-option active" onclick="renderPortMenu('main')"><span>🔙 Volver</span></div>`;
+    } else if (screen === 'styles') {
+        const stockIds = getPortSkinStock(currentPort);
+        const list = SHIP_SKINS.filter(s => !s.secret || player.ownedSkins.includes(s.id));
+        h += say('"Elige el estilo de tu navío. Cada puerto recibe distintos diseños."');
+        list.forEach(s => {
+            const owned = player.ownedSkins.includes(s.id);
+            const equipped = player.equippedSkin === s.id;
+            const inStock = stockIds.includes(s.id);
+            const thumb = `<img class="skin-thumb" src="${s.path}" alt="" onerror="this.style.display='none'">`;
+            const info = `<div class="skin-row">${thumb}<div class="skin-info"><span>${s.name}</span><span class="skin-rarity" style="color:${s.color}">${s.rarity}</span></div></div>`;
+            if (equipped) {
+                h += `<div class="port-option" style="background:#1e8449;color:#fff;border-color:#2ecc71;align-items:center">${info}<span>✅ EQUIPADO</span></div>`;
+            } else if (owned) {
+                h += `<div class="port-option" style="align-items:center" onclick="equipShipSkin('${s.id}')">${info}<span style="color:#2ecc71">⚓ EQUIPAR</span></div>`;
+            } else if (inStock) {
+                h += `<div class="port-option" style="align-items:center" onclick="buyShipSkin('${s.id}')">${info}<span style="color:#f1c40f">💰 ${s.price.toLocaleString('es-MX')}G</span></div>`;
+            } else {
+                h += `<div class="port-option locked" style="align-items:center" onclick="lockedSkinHint('${s.id}')">${info}<span style="font-size:12px;text-align:right">${getSkinLockLabel(s)}</span></div>`;
+            }
+        });
+        h += `<div class="port-option active" onclick="renderPortMenu('shipyard')"><span>🔙 Volver</span></div>`;
     }
     ui.portContent.innerHTML = h;
 }
@@ -1328,6 +1379,83 @@ function repairShip() {
     const c = Math.floor((player.maxHp - player.hp) * portRepairPrice());
     if (player.inventory.gold < c) return renderPortMenu('shipyard', 'Oro insuficiente', '#e74c3c');
     player.inventory.gold -= c; player.hp = player.maxHp; sfx('coin'); renderPortMenu('shipyard', '¡Barco reparado!', '#2ecc71');
+}
+
+const portSkinStockCache = {};
+function isSkinEligibleForPort(s, port) {
+    if (!port || port.type === 'home' || s.secret || s.price <= 0) return false;
+    if (s.reqBigPort && port.type !== 'big') return false;
+    if (s.reqNight && !isNight()) return false;
+    if (s.reqUltratumba && !ultratumba) return false;
+    return true;
+}
+function getPortSkinStock(port) {
+    if (!port || port.type === 'home') return [];
+    const key = `${port.name}_${port.type}_${isNight() ? 'N' : 'D'}_${ultratumba ? 'U' : '0'}`;
+    if (portSkinStockCache[key]) return portSkinStockCache[key];
+    const eligible = SHIP_SKINS.filter(s => isSkinEligibleForPort(s, port));
+    const chosen = [];
+    // Si hay evento especial activo en puerto grande, asegurar que su skin rara aparezca si aún no se tiene
+    if (port.type === 'big' && isNight() && ultratumba) {
+        const esp = eligible.find(s => s.id === 'espectral' && !player.ownedSkins.includes('espectral'));
+        if (esp) chosen.push(esp);
+    }
+    if (port.type === 'big' && isNight() && chosen.length < 2) {
+        const noc = eligible.find(s => s.id === 'nocturno' && !player.ownedSkins.includes('nocturno'));
+        if (noc && Math.random() < 0.75) chosen.push(noc);
+    }
+    const pool = eligible.filter(s => !chosen.includes(s));
+    while (chosen.length < 2 && pool.length > 0) {
+        const idx = Math.floor(Math.random() * pool.length);
+        chosen.push(pool.splice(idx, 1)[0]);
+    }
+    portSkinStockCache[key] = chosen.map(s => s.id);
+    return portSkinStockCache[key];
+}
+function getSkinLockLabel(s) {
+    if (s.reqUltratumba && (!currentPort || currentPort.type !== 'big' || !isNight() || !ultratumba)) return '🌫️ Ultratumba (P. Grande)';
+    if (s.reqNight && (!currentPort || currentPort.type !== 'big' || !isNight())) return '🌙 Noche (P. Grande)';
+    if (s.reqBigPort && (!currentPort || currentPort.type !== 'big')) return '🏰 Solo P. Grande';
+    if (currentPort && currentPort.type === 'home') return '🚫 No disponible aquí';
+    return '🔒 Otro puerto';
+}
+function lockedSkinHint(id) {
+    const s = SHIP_SKINS.find(x => x.id === id);
+    if (!s) return;
+    let msg = 'Este estilo no llegó a este puerto. Prueba en otro.';
+    if (currentPort && currentPort.type === 'home') msg = 'En Desesperanza no venden estilos de barco.';
+    else if (s.reqUltratumba) msg = 'Solo se consigue de noche en puertos grandes durante una Noche de Ultratumba.';
+    else if (s.reqNight) msg = 'Solo se vende de noche en puertos grandes.';
+    else if (s.reqBigPort) msg = 'Solo está disponible en puertos grandes.';
+    renderPortMenu('styles', msg, '#f39c12');
+}
+function buyShipSkin(id) {
+    const s = SHIP_SKINS.find(x => x.id === id);
+    if (!s || s.secret) return;
+    if (player.ownedSkins.includes(id)) return equipShipSkin(id);
+    if (!getPortSkinStock(currentPort).includes(id)) return lockedSkinHint(id);
+    if (player.inventory.gold < s.price) return renderPortMenu('styles', 'Oro insuficiente', '#e74c3c');
+    player.inventory.gold -= s.price;
+    player.ownedSkins.push(id);
+    player.equippedSkin = id;
+    saveGame(true);
+    sfx('coin');
+    const dmgNote = player.hp < player.maxHp * 0.5 ? ' (repara el casco para lucirlo)' : '';
+    renderPortMenu('styles', `🎨 ¡Estilo "${s.name}" comprado y equipado!${dmgNote}`, '#2ecc71');
+}
+function equipShipSkin(id) {
+    const s = SHIP_SKINS.find(x => x.id === id);
+    if (!s || !player.ownedSkins.includes(id)) return;
+    player.equippedSkin = id;
+    saveGame(true);
+    sfx('coin');
+    const dmgNote = player.hp < player.maxHp * 0.5 ? ' (repara el casco para lucirlo)' : '';
+    renderPortMenu('styles', `⚓ Estilo "${s.name}" equipado.${dmgNote}`, '#2ecc71');
+}
+function getPlayerSpriteKey() {
+    if (player.hp < player.maxHp * 0.5 && !(sprites.shipDamaged && sprites.shipDamaged._err)) return 'shipDamaged';
+    const s = SHIP_SKINS.find(x => x.id === player.equippedSkin);
+    return s ? s.sprite : 'player';
 }
 function restInPort() {
     player.savedPos.x = player.gX; player.savedPos.y = player.gY; player.spawnPort = currentPort.name; saveGame(true);
@@ -1802,7 +1930,7 @@ function draw() {
         ctx.fillStyle = p.hostile ? '#e74c3c' : '#f1c40f'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     });
-    if (gameState !== STATE.MENU) drawSprite('player', cx, cy, 65, player.angle, 1, false, FB.player);
+    if (gameState !== STATE.MENU) drawSprite(getPlayerSpriteKey(), cx, cy, 65, player.angle, 1, false, FB.player);
 
     // Noche
     const dk = darkness();
