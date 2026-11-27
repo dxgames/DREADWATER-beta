@@ -727,7 +727,7 @@ function huntTargetEnemy() {
 function spawnHuntTarget(m) {
     const a = Math.random() * Math.PI * 2, d = m.dist || (1500 + Math.random() * 500);
     const hp = m.ship === 'big' ? 150 : 100, size = m.ship === 'big' ? 30 : 25, spd = m.ship === 'big' ? 1.0 : 1.2;
-    enemies.push({ x: player.gX + Math.cos(a) * d, y: player.gY + Math.sin(a) * d, angle: Math.random() * Math.PI * 2, hp, maxHp: hp, size, type: m.ship, reload: 60, canFlee: true, speed: spd, ai: 'sail', aiTimer: 360, wanderA: 0, threeWay: false, foe: null, huntTarget: true, targetId: m.targetId });
+    enemies.push({ x: player.gX + Math.cos(a) * d, y: player.gY + Math.sin(a) * d, angle: Math.random() * Math.PI * 2, hp, maxHp: hp, size, type: m.ship, reload: 60, canFlee: m.ship !== 'big', speed: spd, ai: 'sail', aiTimer: 360, wanderA: 0, threeWay: false, foe: null, huntTarget: true, targetId: m.targetId });
 }
 function onShipSunk(e) { // caza: hundir al objetivo marcado y cobrar en puerto
     if (activeMission && activeMission.kind === 'caza' && e.targetId === activeMission.targetId) {
@@ -794,7 +794,7 @@ function updateBounty() { // un día de juego de cacería
     if (--bounty.timer <= 0) {
         const hadHunter = enemies.some(e => e.bounty && e.type === 'hunter');
         enemies = enemies.filter(e => !e.bounty);
-        if (hadHunter) { hunterCD = CFG.cooldown; if (ultratumba) playMusic('ghost'); else playDayNightMusic(); }
+        if (hadHunter) { hunterCD = CFG.cooldown; updateCombatMusic(); }
         bounty = null;
         showMsg("🏴‍☠️ La cacería terminó, ya no te buscan.", "#2ecc71");
     }
@@ -1031,7 +1031,7 @@ function drawFullMap() {
         mapCtx.textAlign = "center"; mapCtx.font = `${16 / z}px Arial`; mapCtx.fillText("🏝️", mx, my + 5 / z);
         if (t.active) { mapCtx.fillStyle = "red"; mapCtx.font = `bold ${14 / z}px Arial`; mapCtx.fillText("X", mx, my + 5 / z); }
     });
-    wrecks.forEach(w => { const mx = cx + w.x * scale, my = cy + w.y * scale; mapCtx.textAlign = "center"; mapCtx.font = `${14 / z}px Arial`; mapCtx.fillText(w.state === 'uninspected' ? "💀" : "⚓", mx, my + 5 / z); });
+    wrecks.forEach(w => { if (w.state === 'sinking') return; const mx = cx + w.x * scale, my = cy + w.y * scale; mapCtx.textAlign = "center"; mapCtx.font = `${14 / z}px Arial`; mapCtx.fillText(w.state === 'uninspected' ? "💀" : "⚓", mx, my + 5 / z); });
     if (rumorMark) { const mx = cx + rumorMark.x * scale, my = cy + rumorMark.y * scale; mapCtx.fillStyle = "red"; mapCtx.font = `bold ${16 / z}px Arial`; mapCtx.textAlign = "center"; mapCtx.fillText("X", mx, my + 5 / z); }
     if (destination) {
         const mx = cx + destination.x * scale, my = cy + destination.y * scale;
@@ -1104,19 +1104,19 @@ function updateProceduralSpawns() {
             showMsg("⚠️ ¡EL CAZADOR TE HA ENCONTRADO!", "#c0392b"); playMusic('hunter'); sfx('cannon');
         }
     }
-    // EL FANTASMA: solo de noche, probabilidad muy baja, no se puede escapar
+    // EL FANTASMA: solo de noche, probabilidad muy baja, no se puede escapar (su música suena solo al aparecer)
     if (isNight() && ghostCD <= 0 && !hasType('ghost') && Math.random() < CFG.ghostP * (ultratumba ? CFG.ghostBoost : 1)) {
         const a = ang();
         // Durante la noche de ultratumba el Fantasma es el doble de fuerte (x2 dano) y +15% de vida
         enemies.push({ x: player.gX + Math.cos(a) * 2200, y: player.gY + Math.sin(a) * 2200, angle: ang(), hp: ultratumba ? 1150 : 1000, maxHp: ultratumba ? 1150 : 1000, size: 35, type: 'ghost', reload: 60, canFlee: false, noEscape: true, speed: 2.2, buffed: !!ultratumba });
-        showMsg(ultratumba ? "👻 ¡EL FANTASMA DE ULTRATUMBA!" : "¡SENTIRÁS EL FRÍO!", "#2ecc71"); sfx('ghost');
+        showMsg(ultratumba ? "👻 ¡EL FANTASMA DE ULTRATUMBA!" : "¡SENTIRÁS EL FRÍO!", "#2ecc71"); playMusic('ghost'); sfx('ghost');
     }
-    // Barcos normales
+    // Barcos normales (los grandes nunca huyen)
     if (enemies.length < 8) {
         const a = ang(), r = Math.random();
         let type = 'normal', size = 20, hp = 50, canFlee = true, spd = 0.8;
-        if (r < 0.2) { type = 'big'; size = 30; hp = 150; canFlee = Math.random() < 0.3; spd = 1.0; }
-        else if (r < 0.5) { type = 'med'; size = 25; hp = 100; canFlee = Math.random() < 0.3; spd = 1.2; }
+        if (r < 0.2) { type = 'big'; size = 30; hp = 150; canFlee = false; spd = 1.0; }
+        else if (r < 0.5) { type = 'med'; size = 25; hp = 100; canFlee = true; spd = 1.2; }
         enemies.push({ x: player.gX + Math.cos(a) * 2400, y: player.gY + Math.sin(a) * 2400, angle: ang(), hp, maxHp: hp, size, type, reload: 60, canFlee, speed: spd, ai: 'sail', aiTimer: 200 + Math.random() * 300, wanderA: ang() });
     }
     // Batallas entre barcos: poco frecuentes para mantener el mar abierto respirable
@@ -1139,7 +1139,7 @@ function updateProceduralSpawns() {
     }
     // LIMPIEZA: el Cazador te pierde si sale del radar; el Fantasma nunca se va
     const hunter = enemies.find(e => e.type === 'hunter');
-    if (hunter && !hunter.bounty && dist(player.gX, player.gY, hunter.x, hunter.y) > CFG.radar) { hunterCD = CFG.cooldown; showMsg("El Cazador te perdió de vista", "#3498db"); if (ultratumba) playMusic('ghost'); else playDayNightMusic(); }
+    if (hunter && !hunter.bounty && dist(player.gX, player.gY, hunter.x, hunter.y) > CFG.radar) { hunterCD = CFG.cooldown; showMsg("El Cazador te perdió de vista", "#3498db"); updateCombatMusic(); }
     enemies = enemies.filter(e => e.type === 'ghost' || e.huntTarget || e.bounty || dist(player.gX, player.gY, e.x, e.y) < (e.type === 'hunter' ? CFG.radar : 5000));
     rocks = rocks.filter(r => dist(player.gX, player.gY, r.x, r.y) < 4000);
     islands = islands.filter(i => dist(player.gX, player.gY, i.x, i.y) < 7000);
@@ -1150,14 +1150,18 @@ function updateProceduralSpawns() {
     }
     if (wrecks.length < 3 && rocks.length > 0 && Math.random() < 0.0005) { const r = rocks[Math.floor(Math.random() * rocks.length)], a = ang();
         wrecks.push({ x: r.x + Math.cos(a) * 100, y: r.y + Math.sin(a) * 100, angle: Math.random() * Math.PI * 2, state: 'uninspected', born: gameTime }); }
-    // Un naufragio sin investigar se hunde y desaparece a los 2 minutos
-    wrecks = wrecks.filter(w => {
-        if (w.state === 'emerging') { w.born = gameTime; return true; }
+    // Un naufragio sin investigar se hunde con animación y desaparece a los 2 minutos
+    wrecks.forEach(w => {
+        if (w.state === 'emerging' || w.state === 'sinking') { w.born = gameTime; return; }
         if (w.born === undefined) w.born = gameTime;
         if (gameTime - w.born > 120) {
             if (w.rumor) { if (rumorMark && dist(rumorMark.x, rumorMark.y, w.x, w.y) < 500) rumorMark = null; showMsg("💀 El naufragio del rumor se hundió sin ser investigado.", "#95a5a6"); }
-            return false;
+            w.state = 'sinking'; w.alpha = w.alpha ?? 1; w.scale = w.scale ?? 1;
+            if (dist(player.gX, player.gY, w.x, w.y) < 2000) { spawnExplosion(w.x, w.y, '#5dade2'); sfx('sink'); }
         }
+    });
+    wrecks = wrecks.filter(w => {
+        if (w.state === 'sinking') return w.alpha > 0 && dist(player.gX, player.gY, w.x, w.y) < 7000;
         return w.rumor || dist(player.gX, player.gY, w.x, w.y) < 7000;
     });
     treasureSites = treasureSites.filter(t => t.missionLoot || dist(player.gX, player.gY, t.x, t.y) < 7000); // excavadas se quedan como islas, igual que las demas
@@ -1193,11 +1197,12 @@ function canJoinFight(e) {
 }
 function battleTrackFor(type) { return type === 'big' ? 'battleBig' : type === 'med' ? 'battleMed' : 'battleSmall'; }
 // Música de combate en mar abierto: suena la del barco que te ataca; si la pelea
-// es de tres, la difícil; si es de dos, la normal de ese barco. El Cazador y la
-// noche de ultratumba mandan su propia música y no se les toca.
+// es de tres, la difícil; si es de dos, la normal de ese barco. El Fantasma y el
+// Cazador mandan su propia música cuando aparecen.
 function updateCombatMusic() {
     if (gameState !== STATE.ROAMING) return;
-    if (enemies.some(e => e.type === 'hunter') || ultratumba) return;
+    if (enemies.some(e => e.type === 'ghost')) { if (currentMusic !== audio.ghost) playMusic('ghost'); return; }
+    if (enemies.some(e => e.type === 'hunter')) { if (currentMusic !== audio.hunter) playMusic('hunter'); return; }
     const f = openSeaFighters();
     let want = null;
     if (f.length >= 2) want = 'battleBig'; // pelea de tres: música difícil
@@ -1527,9 +1532,12 @@ function acceptRumor() {
         showMsg("📍 Lugar marcado en el minimapa", "#f1c40f");
     }
 }
+function isPlayerStopped() {
+    return !player.isSailing && Math.abs(player.speed) < 0.05 && Math.hypot(player.bounceX || 0, player.bounceY || 0) < 0.05;
+}
 // Inspeccionar un naufragio: nada (40%), botin (40%) o trampa -> batalla (20%)
 function inspectWreck(w) {
-    if (w.state !== 'uninspected') return;
+    if (w.state !== 'uninspected' || !isPlayerStopped()) return;
     if (rumorMark && dist(rumorMark.x, rumorMark.y, w.x, w.y) < 500) rumorMark = null;
     const roll = Math.random();
     if (roll < 0.2) {
@@ -1538,7 +1546,7 @@ function inspectWreck(w) {
         const maxHp = type === 'big' ? 150 : type === 'med' ? 100 : 50;
         const hp = Math.max(1, Math.floor(maxHp * 0.5)), size = type === 'big' ? 30 : type === 'med' ? 25 : 20, spd = type === 'big' ? 1.0 : type === 'med' ? 1.2 : 0.8;
         showMsg("¡ERA UNA TRAMPA! ¡Piratas emboscados!", "#e74c3c"); sfx('cannon');
-        startBattle({ x: w.x, y: w.y, angle: 0, hp, maxHp, size, type, reload: 60, canFlee: true, speed: spd });
+        startBattle({ x: w.x, y: w.y, angle: 0, hp, maxHp, size, type, reload: 60, canFlee: type !== 'big', speed: spd });
     } else if (roll < 0.6) {
         const g = Math.floor(Math.random() * 401) + 100, rum = Math.floor(Math.random() * 11) + 5;
         player.inventory.gold += g; player.inventory.rum += rum;
@@ -1547,11 +1555,12 @@ function inspectWreck(w) {
     } else {
         showMsg("Solo madera podrida... no hay nada útil.", "#bdc3c7");
     }
-    // Al investigarlo, el naufragio se hunde y desaparece del mapa y del radar
+    // Al investigarlo, el naufragio hace la animación de hundirse y desaparece
     spawnExplosion(w.x, w.y, '#5dade2'); sfx('sink');
-    wrecks = wrecks.filter(x => x !== w);
+    w.state = 'sinking'; w.alpha = 1; w.scale = 1;
 }
 function enterPort(port) {
+    if (!isPlayerStopped()) return;
     currentPort = port; gameState = STATE.PORT; player.speed = 0; player.isSailing = false; ui.anchorBtn.classList.remove('sailing');
     ui.actionBtn.style.display = 'none'; currentAction = null; ui.controls.style.display = 'none'; ui.portScreen.classList.add('visible');
     ui.portTitle.innerText = port.name;
@@ -1565,7 +1574,7 @@ function enterPort(port) {
 function exitPort() { ui.portScreen.classList.remove('visible'); ui.controls.style.display = 'flex'; gameState = STATE.ROAMING; }
 
 function dig(t) {
-    if (!t.active) return;
+    if (!t.active || !isPlayerStopped()) return;
     if (t.missionLoot) { // botín de la misión: se recoge, hay que devolverlo al puerto
         if (activeMission && activeMission.kind === 'botin') {
             t.active = false; activeMission.collected = true;
@@ -1581,23 +1590,32 @@ function dig(t) {
     showMsg(`+${g} ORO / +20 RON`, "#f1c40f"); sfx('coin');
 }
 
-// IA de barcos en mar abierto: hostilidad moderada para que no haya peleas constantes
+// Detección visual: cono frontal del barco (±60° hasta 850m) o muy cerca (<240m)
+function canDetectPlayer(e) {
+    const dToP = dist(e.x, e.y, player.gX, player.gY);
+    if (dToP < 240) return true;
+    if (dToP > 850) return false;
+    const toP = Math.atan2(player.gX - e.x, -(player.gY - e.y));
+    let diff = toP - e.angle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    return Math.abs(diff) <= Math.PI / 3;
+}
+// IA de barcos en mar abierto según tipo y vida del jugador
 function pickShipAI(e) {
-    const dP = dist(e.x, e.y, player.gX, player.gY), hpF = player.hp / player.maxHp, roll = Math.random();
+    const hpF = player.hp / player.maxHp, roll = Math.random();
     if (e.bounty) return 'approach'; // los que te cazan por robar siempre te persiguen
-    if (dP > 2200) return 'sail';
-    if (e.type === 'normal') { // pequeños: prefieren navegar o evitar conflicto
-        if (dP < 1800) { if (roll < 0.65) return 'avoid'; if (roll < 0.85) return 'flee'; return 'sail'; }
-        return roll < 0.85 ? 'sail' : 'avoid';
+    if (e.type === 'normal') { // pequeños: los que más huyen; atacan si vida del jugador es muy baja (<=25%)
+        if (hpF <= 0.25) return 'approach';
+        return roll < 0.75 ? 'flee' : 'avoid';
     }
-    if (e.type === 'med') { // medianos: rara vez buscan pelea por iniciativa propia
-        if (hpF < 0.25) { if (roll < 0.25) return 'approach'; if (roll < 0.8) return 'sail'; return 'avoid'; }
-        if (hpF > 0.5) { if (roll < 0.45) return 'avoid'; if (roll < 0.98) return 'sail'; return 'approach'; }
-        if (roll < 0.72) return 'sail'; if (roll < 0.80) return 'approach'; return 'avoid';
+    if (e.type === 'med') { // medianos: pelean si vida del jugador <=50%; si está por encima, evitan o siguen su camino
+        if (hpF <= 0.5) return 'approach';
+        return roll < 0.5 ? 'avoid' : 'sail';
     }
-    // grandes: siguen su ruta la mayor parte del tiempo
-    if (hpF < 0.5) { if (roll < 0.22) return 'approach'; return 'sail'; }
-    if (roll < 0.85) return 'sail'; if (roll < 0.90) return 'approach'; return 'avoid';
+    // grandes: nunca huyen; si vida del jugador <=50%, atacan; si está por encima, deciden si atacar o seguir su camino
+    if (hpF <= 0.5) return 'approach';
+    return roll < 0.25 ? 'approach' : 'sail';
 }
 
 // === UPDATE ===
@@ -1643,13 +1661,13 @@ function update() {
         const n = isNight();
         if (n !== wasNight) {
             wasNight = n; showMsg(n ? "🌙 CAE LA NOCHE" : "☀️ AMANECE", n ? "#9b9bff" : "#f1c40f"); playDayNightMusic();
-            // NOCHE DE ULTRATUMBA: al caer la noche, probabilidad extremadamente baja
+            // NOCHE DE ULTRATUMBA: al caer la noche, solo suena el sonido de ultratumba (no la música del fantasma)
             if (n && !ultratumba && Math.random() < CFG.ultratumbaP) {
                 ultratumba = true; ultratumbaTimer = CFG.ultratumbaFrames;
-                showMsg("🌫️ ¡NOCHE DE ULTRATUMBA!", "#2ecc71"); playMusic('ghost'); sfx('ghost');
+                showMsg("🌫️ ¡NOCHE DE ULTRATUMBA!", "#2ecc71"); sfx('ghost');
             }
             // Al amanecer, el Fantasma se desvanece (regla general, no solo del evento)
-            if (!n) { const gi = enemies.findIndex(e => e.type === 'ghost'); if (gi >= 0) { enemies.splice(gi, 1); showMsg("👻 El Fantasma se desvanece con el amanecer", "#2ecc71"); } }
+            if (!n) { const gi = enemies.findIndex(e => e.type === 'ghost'); if (gi >= 0) { enemies.splice(gi, 1); showMsg("👻 El Fantasma se desvanece con el amanecer", "#2ecc71"); updateCombatMusic(); } }
         }
         if (player.isSailing && ++player.rumConsumptionTimer > 1800) { if (player.inventory.rum > 0) { player.inventory.rum--; if (player.inventory.rum === 0) showMsg("🍾 ¡Te quedaste sin ron! Vas a medio gas", "#e67e22"); } player.rumConsumptionTimer = 0; }
     }
@@ -1667,7 +1685,10 @@ function update() {
         }
         if (player.isSailing && player.speed < spd) player.speed += player.accel;
         else if (player.isSailing && player.speed > spd) player.speed = Math.max(spd, player.speed - 0.04);
-        else if (!player.isSailing && player.speed > 0) player.speed -= 0.05;
+        else if (!player.isSailing) {
+            if (player.speed > 0) player.speed = Math.max(0, player.speed - 0.05);
+            else if (player.speed < 0) player.speed = Math.min(0, player.speed + 0.05);
+        }
         const turnRate = pZone === 'eye' ? 0.024 : pZone === 'strong' ? 0.029 : 0.035;
         if (keys.Left) player.angle -= turnRate;
         if (keys.Right) player.angle += turnRate;
@@ -1701,22 +1722,28 @@ function update() {
             w.scale = Math.min(1, (w.scale ?? 0.3) + 0.004);
             w.angle -= 0.012;
             if (w.alpha >= 1 && w.scale >= 1) { w.alpha = 1; w.scale = 1; w.state = 'uninspected'; w.born = gameTime; }
+        } else if (w.state === 'sinking') {
+            w.alpha = Math.max(0, (w.alpha ?? 1) - 0.006);
+            w.scale = Math.max(0.3, (w.scale ?? 1) - 0.004);
+            w.angle += 0.012;
         }
     });
+    wrecks = wrecks.filter(w => !(w.state === 'sinking' && w.alpha <= 0));
 
     if (gameState === STATE.ROAMING) {
         let inRange = false; currentAction = null;
+        const stopped = isPlayerStopped();
         ports.forEach(p => {
             const d = dist(player.gX, player.gY, p.x, p.y);
             pushOut(p.x, p.y, p.radius + 10, p.radius + 11, -0.3);
-            if (d < p.radius + 40 && player.speed < 1.5) { ui.actionBtn.style.display = 'block'; ui.actionBtn.innerText = "⚓ AMARRAR"; currentAction = () => enterPort(p); inRange = true; }
+            if (d < p.radius + 40 && stopped) { ui.actionBtn.style.display = 'block'; ui.actionBtn.innerText = "⚓ AMARRAR"; currentAction = () => enterPort(p); inRange = true; }
         });
         treasureSites.forEach(t => {
             pushOut(t.x, t.y, t.radius - 20, t.radius - 15, -0.5);
-            if (t.active && dist(player.gX, player.gY, t.x, t.y) < t.radius + 30) { ui.actionBtn.style.display = 'block'; ui.actionBtn.innerText = "💎 EXCAVAR"; currentAction = () => dig(t); inRange = true; }
+            if (t.active && dist(player.gX, player.gY, t.x, t.y) < t.radius + 30 && stopped) { ui.actionBtn.style.display = 'block'; ui.actionBtn.innerText = "💎 EXCAVAR"; currentAction = () => dig(t); inRange = true; }
         });
         wrecks.forEach(w => {
-            if (w.state === 'uninspected' && dist(player.gX, player.gY, w.x, w.y) < 150) { ui.actionBtn.style.display = 'block'; ui.actionBtn.innerText = "🔍 INSPECCIONAR"; currentAction = () => inspectWreck(w); inRange = true; }
+            if (w.state === 'uninspected' && dist(player.gX, player.gY, w.x, w.y) < 150 && stopped) { ui.actionBtn.style.display = 'block'; ui.actionBtn.innerText = "🔍 INSPECCIONAR"; currentAction = () => inspectWreck(w); inRange = true; }
         });
         if (!inRange) ui.actionBtn.style.display = 'none';
         islands.forEach(i => pushOut(i.x, i.y, i.radius - 20, i.radius - 15, -0.5));
@@ -1733,7 +1760,7 @@ function update() {
             if (sk.length > 0) {
                 if (!sk.some(e => e.threeWay) && sk.some(e => dist(e.x, e.y, player.gX, player.gY) < 250) && enemies.filter(x => x.ai === 'approach').length < 2) {
                     sk.forEach(e => { e.threeWay = true; e.reloadP = 90 + Math.random() * 60; });
-                    enemies.forEach(x => { if (x.ai === 'approach') { x.ai = 'avoid'; x.aiTimer = 360 + Math.random() * 360; } }); // batallas de tres como máximo: los demás no se meten
+                    enemies.forEach(x => { if (x.ai === 'approach') { x.ai = x.type === 'big' ? 'sail' : 'avoid'; x.aiTimer = 360 + Math.random() * 360; } }); // batallas de tres como máximo: los demás no se meten
                     showMsg("⚔️ ¡Te metiste en la batalla!", "#e67e22"); sfx('cannon');
                 }
                 if (!sk.some(e => e.threeWay && dist(e.x, e.y, player.gX, player.gY) < 800)) sk.forEach(e => { e.threeWay = false; });
@@ -1760,39 +1787,55 @@ function update() {
                 e.y += -Math.cos(e.angle) * sSpd + (drift ? storm.vy * drift : 0);
             } else {
                 const dToP = dist(e.x, e.y, player.gX, player.gY);
-                // Los barcos en batalla NO abandonan el combate por temporizador
-                if (e.ai !== 'skirmish' && e.ai !== 'approach' && --e.aiTimer <= 0) {
-                    e.ai = pickShipAI(e); e.chase = false; e.aiTimer = 360 + Math.random() * 360;
-                    if (e.ai === 'approach' && !canJoinFight(e)) e.ai = 'avoid';
+                const seesPlayer = canDetectPlayer(e);
+                // Los barcos en batalla NO abandonan el combate por temporizador; solo reaccionan al jugador por contacto visual o cercanía
+                if (e.ai !== 'skirmish' && e.ai !== 'approach') {
+                    if (e.bounty) {
+                        e.ai = 'approach';
+                    } else if (seesPlayer) {
+                        if (!e.detectedPlayer || --e.aiTimer <= 0) {
+                            e.detectedPlayer = true;
+                            e.ai = pickShipAI(e); e.chase = false; e.aiTimer = 420 + Math.random() * 300;
+                            if (e.ai === 'approach' && !canJoinFight(e)) e.ai = e.type === 'big' ? 'sail' : 'avoid';
+                        }
+                    } else {
+                        e.detectedPlayer = false;
+                        if (dToP > 900 && (e.ai === 'avoid' || (e.ai === 'flee' && !e.fleeFrom))) {
+                            e.ai = 'sail'; e.chase = false;
+                        }
+                    }
                 }
-                // El Cazador asusta: los barcos que lo ven huyen de él (salvo si están en plena escaramuza)
+                // El Cazador asusta solo a barcos pequeños y medianos (los grandes nunca huyen)
                 const hunterShip = enemies.find(x => x.type === 'hunter');
-                if (hunterShip && e.ai !== 'skirmish' && dist(e.x, e.y, hunterShip.x, hunterShip.y) < 1500) { e.fleeFrom = hunterShip; e.chase = false; if (e.ai !== 'flee') { e.ai = 'flee'; e.aiTimer = 360 + Math.random() * 360; } }
+                if (e.type !== 'big' && hunterShip && e.ai !== 'skirmish' && dist(e.x, e.y, hunterShip.x, hunterShip.y) < 1500) { e.fleeFrom = hunterShip; e.chase = false; if (e.ai !== 'flee') { e.ai = 'flee'; e.aiTimer = 360 + Math.random() * 360; } }
                 else e.fleeFrom = null;
                 // En combate (approach): misma mecánica que en arena; solo termina si salen del rango de combate (>900m)
                 if (e.ai === 'approach' && !e.bounty && dToP > 900) {
-                    e.ai = 'sail'; e.chase = false; e.aiTimer = 900 + Math.random() * 600;
+                    e.ai = 'sail'; e.chase = false; e.detectedPlayer = false; e.aiTimer = 420 + Math.random() * 300;
                 }
-                // Persecución: si el barco que huía se aleja demasiado, escapó y la caza termina
-                if (e.chase && e.ai === 'flee' && !e.fleeFrom && dToP > 900) { e.chase = false; e.ai = 'sail'; e.aiTimer = 900 + Math.random() * 600; }
+                // Persecución: si el barco pequeño o mediano que huía se aleja demasiado, escapó
+                if (e.chase && e.ai === 'flee' && !e.fleeFrom && dToP > 900) { e.chase = false; e.ai = 'sail'; e.detectedPlayer = false; e.aiTimer = 420 + Math.random() * 300; }
                 const toP = Math.atan2(player.gX - e.x, -(player.gY - e.y));
                 const awayP = toP + Math.PI;
                 let spd = e.speed;
                 if (e.ai === 'sail') { if (Math.random() < 0.005) e.wanderA = Math.random() * Math.PI * 2; turnToward(e, e.wanderA, 0.02); }
                 else if (e.ai === 'approach') {
-                    // Misma mecánica de batalla que en la arena según el tipo de barco
+                    // Misma mecánica de batalla según tipo de barco; solo pequeños y medianos pueden huir si quedan muy dañados
                     let eSpd = e.speed * Math.max(0.4, e.hp / e.maxHp);
                     let targetAngle = toP;
                     if (e.type === 'normal') {
-                        if (!e.bai) { e.bai = 'flee'; e.baiTimer = 240 + Math.random() * 120; }
-                        if (--e.baiTimer <= 0) { e.bai = (e.bai === 'flee') ? (dToP < 250 ? 'fight' : 'flee') : (dToP > 350 ? 'flee' : 'fight'); e.baiTimer = 240 + Math.random() * 120; }
-                        if (e.bai === 'flee') { targetAngle = awayP; eSpd *= 1.25; }
-                        else targetAngle = toP + 1.2 + Math.sin(gameTime * 0.3) * 0.5;
+                        if (e.hp < e.maxHp * 0.45 && (player.hp / player.maxHp) > 0.25) { e.ai = 'flee'; e.chase = true; targetAngle = awayP; eSpd *= 1.5; }
+                        else {
+                            if (!e.bai) { e.bai = 'fight'; e.baiTimer = 240 + Math.random() * 120; }
+                            if (--e.baiTimer <= 0) { e.bai = (e.bai === 'flee') ? (dToP < 250 ? 'fight' : 'flee') : (dToP > 350 ? 'flee' : 'fight'); e.baiTimer = 240 + Math.random() * 120; }
+                            if (e.bai === 'flee') { targetAngle = awayP; eSpd *= 1.25; }
+                            else targetAngle = toP + 1.2 + Math.sin(gameTime * 0.3) * 0.5;
+                        }
                     } else if (e.type === 'med') {
-                        if (e.hp < e.maxHp * 0.3) { targetAngle = awayP; eSpd *= 1.2; }
+                        if (e.hp < e.maxHp * 0.3) { e.ai = 'flee'; e.chase = true; targetAngle = awayP; eSpd *= 1.4; }
                         else if (dToP < 200) targetAngle = toP + e.orbitDir * 1.55;
                     } else {
-                        // Barcos grandes: pelean hasta el final, maniobran de costado sin buscar chocar todo el tiempo
+                        // Barcos grandes: nunca huyen, pelean hasta el final maniobrando de costado
                         if (dToP < 140) targetAngle = toP + e.orbitDir * 2.15;
                         else if (dToP < 280) targetAngle = toP + e.orbitDir * 1.62;
                     }
@@ -1868,7 +1911,7 @@ function update() {
                         }
                     }
                     if (e.ai !== 'skirmish' && e.ai !== 'approach' && canJoinFight(e)) {
-                        e.ai = 'approach'; e.aiTimer = 360 + Math.random() * 360; e.reload = 60;
+                        e.ai = 'approach'; e.bai = 'fight'; e.baiTimer = 240; e.aiTimer = 360 + Math.random() * 360; e.reload = 60;
                     }
                 }
             }
@@ -1973,7 +2016,7 @@ function update() {
                 e.hp -= 10 + player.upgrades.cannons; p.life = 0;
                 spawnExplosion(p.x, p.y, '#7f8c8d'); sfx('hit');
                 if (e.ai !== 'skirmish' && e.ai !== 'approach' && canJoinFight(e)) {
-                    e.ai = 'approach'; e.aiTimer = 360 + Math.random() * 360; e.reload = 60;
+                    e.ai = 'approach'; e.bai = 'fight'; e.baiTimer = 240; e.aiTimer = 360 + Math.random() * 360; e.reload = 60;
                 }
                 if (e.hp <= 0) sinkShipRoaming(e, true);
                 break;
@@ -2151,7 +2194,7 @@ function draw() {
         const inMap = (dx, dy) => Math.hypot(dx, dy) < mid - 12;
         ports.forEach(p => { const dx = (p.x - player.gX) * scale, dy = (p.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.fillStyle = "black"; ctx.font = "italic bold 8px serif"; ctx.textAlign = "center"; ctx.fillText(p.name, mid + dx, mid + dy - 8); ctx.font = "12px Arial"; ctx.fillText("⚓", mid + dx, mid + dy + 5); } });
         treasureSites.forEach(t => { const dx = (t.x - player.gX) * scale, dy = (t.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.font = "10px Arial"; ctx.fillText("🏝️", mid + dx - 4, mid + dy + 4); if (t.active) { ctx.fillStyle = "red"; ctx.font = "bold 8px Arial"; ctx.fillText("X", mid + dx - 2, mid + dy + 2); } } });
-        wrecks.forEach(w => { const dx = (w.x - player.gX) * scale, dy = (w.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.font = "10px Arial"; ctx.fillText(w.state === 'uninspected' ? "💀" : "⚓", mid + dx - 5, mid + dy + 4); } });
+        wrecks.forEach(w => { if (w.state === 'sinking') return; const dx = (w.x - player.gX) * scale, dy = (w.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.font = "10px Arial"; ctx.fillText(w.state === 'uninspected' ? "💀" : "⚓", mid + dx - 5, mid + dy + 4); } });
         if (rumorMark) { const dx = (rumorMark.x - player.gX) * scale, dy = (rumorMark.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.fillStyle = "red"; ctx.font = "bold 12px Arial"; ctx.fillText("X", mid + dx - 4, mid + dy + 4); } }
         islands.forEach(i => { const dx = (i.x - player.gX) * scale, dy = (i.y - player.gY) * scale; if (inMap(dx, dy)) { ctx.font = "10px Arial"; ctx.fillText("🏝️", mid + dx - 4, mid + dy + 4); } });
         enemies.forEach(e => {
