@@ -59,6 +59,59 @@ h2{color:#f1c40f;text-align:center;margin:0 0 15px;text-shadow:2px 2px 0 #000;te
 @keyframes fadeUp{0%{opacity:1;transform:translateY(0)}55%{opacity:1;transform:translateY(-18px)}100%{opacity:0;transform:translateY(-50px)}}
 .result-content{text-align:center;color:#fff}
 .btn-ui{background:#d35400;color:#fff;border:2px solid #fff;padding:15px 40px;font-size:18px;margin-top:20px;cursor:pointer;border-radius:5px;font-weight:bold}
+
+/* DADO MENTIROSO (MINIJUEGO TABERNA) */
+#dice-screen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:120;background:radial-gradient(circle at center,#2b180a 0%,#120903 100%);display:none;flex-direction:column;box-sizing:border-box;padding:6px 10px;color:#fff;touch-action:manipulation}
+#dice-topbar{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:920px;margin:0 auto 5px;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.dice-hud-group{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.55);border:1px solid #8c5828;padding:5px 10px;border-radius:8px;font-size:14px;font-weight:bold}
+.dice-top-btns{display:flex;gap:6px}
+.dice-mini-btn{background:#34495e;color:#f1c40f;border:2px solid #f1c40f;padding:6px 11px;border-radius:7px;font-family:'Courier New',monospace;font-weight:bold;font-size:13px;cursor:pointer;box-shadow:0 3px 0 #000}
+.dice-mini-btn:active{transform:translateY(2px);box-shadow:none}
+.dice-mini-btn.surrender{background:#7b241c;border-color:#e74c3c;color:#fff}
+#dice-board{flex:1;width:100%;max-width:920px;margin:0 auto;border-radius:14px;border:5px solid #3b1e08;outline:2px solid rgba(241,196,15,.22);outline-offset:-8px;box-shadow:inset 0 0 40px rgba(0,0,0,.88),0 6px 20px rgba(0,0,0,.85);background:repeating-linear-gradient(0deg,rgba(0,0,0,.24) 0px,rgba(0,0,0,.24) 2px,transparent 2px,transparent 46px),repeating-linear-gradient(90deg,rgba(255,210,150,.03) 0px,rgba(255,210,150,.03) 4px,rgba(0,0,0,.06) 4px,rgba(0,0,0,.06) 9px),linear-gradient(180deg,#6e411d 0%,#542f12 52%,#3f210a 100%);display:flex;flex-direction:column;justify-content:space-between;padding:10px 14px;box-sizing:border-box;overflow-y:auto;touch-action:pan-y;position:relative}
+.dice-zone{display:flex;flex-direction:column;align-items:center;gap:5px}
+.dice-zone-label{font-size:13px;font-weight:bold;color:#f5cba7;text-shadow:1px 1px 0 #000;letter-spacing:.5px}
+.dice-row{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;min-height:50px}
+/* DADOS 3D ESTILO PIRATA */
+.die-3d{width:44px;height:44px;border-radius:7px;background:linear-gradient(145deg,#fffdf8 0%,#e5d6b8 100%);border-top:2px solid #fff;border-left:2px solid #f7eedc;box-shadow:1px 1px 0 #c7b491,2px 2px 0 #b39e79,3px 3px 0 #9c8660,4px 4px 0 #826d49,5px 7px 9px rgba(0,0,0,.7);transform:perspective(220px) rotateX(12deg) rotateY(-8deg);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:5px;box-sizing:border-box;transition:transform .2s,box-shadow .2s}
+.die-3d.match{box-shadow:0 0 12px #2ecc71,1px 1px 0 #27ae60,2px 2px 0 #229954,3px 3px 0 #1e8449,4px 4px 0 #196f3d,5px 7px 9px rgba(0,0,0,.75);transform:perspective(220px) rotateX(8deg) rotateY(-4deg) translateY(-3px)}
+.die-3d.rolling{animation:dieTumble .45s ease-in-out}
+@keyframes dieTumble{0%{transform:perspective(220px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)}30%{transform:perspective(220px) rotateX(38deg) rotateY(-35deg) rotateZ(-14deg) translateY(-8px) scale(1.08)}65%{transform:perspective(220px) rotateX(-25deg) rotateY(30deg) rotateZ(12deg) translateY(-4px) scale(1.04)}100%{transform:perspective(220px) rotateX(12deg) rotateY(-8deg) rotateZ(0deg) scale(1)}}
+.pip{width:8px;height:8px;border-radius:50%;background:#1e140c;box-shadow:inset 0 1px 1px rgba(0,0,0,.85);align-self:center;justify-self:center}
+.pip.ace{width:14px;height:14px;background:#c0392b;border:1.5px solid #d4ac0d;box-shadow:0 0 4px rgba(192,57,43,.6)}
+.dice-cup{width:44px;height:46px;border-radius:6px 6px 14px 14px;background:linear-gradient(135deg,#522c14 0%,#261105 100%);border:2px solid #935b2a;border-bottom:4px solid #d4ac0d;box-shadow:2px 4px 8px rgba(0,0,0,.75);transform:perspective(220px) rotateX(10deg);display:flex;align-items:center;justify-content:center;font-size:18px;color:#f1c40f;text-shadow:1px 1px 0 #000}
+/* CENTRO DE MESA Y CONTROLES */
+.dice-center-box{background:rgba(15,8,3,.68);border:2px solid #8c5828;border-radius:10px;padding:7px 12px;text-align:center;max-width:620px;width:100%;margin:4px auto;box-sizing:border-box}
+.dice-bid-banner{font-size:16px;font-weight:bold;color:#f1c40f;text-shadow:1px 1px 0 #000}
+.dice-pirate-say{font-size:13px;font-style:italic;color:#f8c471;margin-top:3px}
+.dice-bottom-area{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px;width:100%}
+.dice-controls-panel{background:rgba(20,11,4,.75);border:2px solid #7e4e24;border-radius:10px;padding:7px 10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.dice-pick-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.qty-btn{width:34px;height:34px;background:#2c3e50;color:#f1c40f;border:2px solid #f1c40f;border-radius:6px;font-size:18px;font-weight:bold;cursor:pointer;font-family:'Courier New',monospace}
+.qty-btn:active{transform:scale(.94)}
+.qty-display{min-width:34px;text-align:center;font-size:18px;font-weight:bold;color:#fff}
+.face-btn{width:36px;height:36px;background:#34495e;color:#fff;border:2px solid #7f8c8d;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.face-btn.selected{background:#d4ac0d;color:#000;border-color:#fff;font-weight:bold;transform:scale(1.06)}
+.dice-action-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.dice-act-btn{padding:8px 14px;border-radius:7px;font-family:'Courier New',monospace;font-weight:bold;font-size:14px;cursor:pointer;border:2px solid #fff;box-shadow:0 3px 0 #000;text-transform:uppercase}
+.dice-act-btn:active{transform:translateY(2px);box-shadow:none}
+.dice-act-btn.raise{background:#27ae60;color:#fff;border-color:#2ecc71}
+.dice-act-btn.raise:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.dice-act-btn.liar{background:#c0392b;color:#fff;border-color:#e74c3c}
+.bet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;width:100%;max-width:540px;margin:8px auto}
+.bet-btn{background:#2c3e50;color:#f1c40f;border:2px solid #f1c40f;padding:11px 8px;border-radius:8px;font-family:'Courier New',monospace;font-weight:bold;font-size:15px;cursor:pointer;box-shadow:0 3px 0 #000}
+.bet-btn:active{transform:translateY(2px);box-shadow:none}
+.bet-btn.disabled{opacity:.38;border-color:#7f8c8d;color:#95a5a6}
+.dice-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#2c3e50;border:3px solid #f1c40f;border-radius:12px;padding:16px;color:#fff;z-index:350;display:none;width:88%;max-width:460px;max-height:82vh;overflow-y:auto;box-shadow:0 0 25px #000;text-align:center;touch-action:pan-y}
+@media (max-height:430px){
+  .die-3d{width:38px;height:38px;padding:4px}
+  .pip{width:6px;height:6px}
+  .pip.ace{width:11px;height:11px}
+  .dice-cup{width:38px;height:40px;font-size:15px}
+  #dice-board{padding:6px 10px}
+  .dice-center-box{padding:5px 8px;margin:2px auto}
+}
+
 </style>
 </head>
 <body>
@@ -157,6 +210,44 @@ h2{color:#f1c40f;text-align:center;margin:0 0 15px;text-shadow:2px 2px 0 #000;te
     <div id="port-menu">
         <h2 id="port-title">PUERTO</h2>
         <div id="port-content"></div>
+    </div>
+</div>
+
+<div id="dice-screen">
+    <div id="dice-topbar">
+        <div class="dice-hud-group" id="dice-hud-stats"></div>
+        <div class="dice-top-btns">
+            <button class="dice-mini-btn" onclick="openDiceRules()">📜 Reglas</button>
+            <button class="dice-mini-btn surrender" onclick="surrenderDiceGame()">🏳️ Rendirse</button>
+        </div>
+    </div>
+    <div id="dice-board"></div>
+</div>
+
+<div id="dice-rules-modal" class="dice-modal">
+    <h2 style="font-size:20px;margin-bottom:10px">📜 REGLAS: DADO MENTIROSO</h2>
+    <div style="text-align:left;font-size:13px;line-height:1.5;color:#ecf0f1;margin-bottom:14px">
+        🎲 <b>Inicio:</b> Tú y el Pirata empiezan con <b>5 dados</b> ocultos bajo su cubilete.<br><br>
+        ★ <b>Ases (1) son comodines:</b> Cada <b>1</b> cuenta como cualquier cara (2 al 6), excepto si la apuesta actual es directamente sobre Ases (1).<br><br>
+        📈 <b>Subir apuesta:</b> En tu turno debes superar la apuesta anterior subiendo la <b>cantidad</b> de dados (con cualquier cara) o manteniendo la cantidad y subiendo la <b>cara</b>.<br>
+        • <i>De caras normales a Ases (1):</i> apuesta al menos la <b>mitad</b> (redondeada hacia arriba).<br>
+        • <i>De Ases (1) a caras normales:</i> apuesta al menos el <b>doble + 1</b>.<br><br>
+        🗣️ <b>¡Mentiroso!:</b> Si crees que no hay tantos dados como dice el Pirata, pulsa <b>¡Mentiroso!</b>. Se levantan los cubiletes y se cuentan los dados de toda la mesa:<br>
+        • Si hay <b>igual o más</b> de los apostados → pierdes 1 dado.<br>
+        • Si hay <b>menos</b> de los apostados → el Pirata pierde 1 dado.<br><br>
+        🏆 <b>Victoria:</b> Gana quien deje al rival sin dados. ¡Duplicas tu apuesta y puedes obtener un rumor!
+    </div>
+    <button class="btn-ui" style="padding:8px 24px;font-size:15px;margin-top:0" onclick="closeDiceRules()">ENTENDIDO</button>
+</div>
+
+<div id="dice-surrender-modal" class="dice-modal">
+    <h2 style="font-size:20px;color:#e74c3c;margin-bottom:10px">🏳️ ¿RENDIRSE?</h2>
+    <div style="font-size:14px;line-height:1.5;margin-bottom:16px">
+        Si te rindes ahora perderás tu apuesta y regresarás a la taberna.
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn-ui" style="padding:8px 18px;font-size:14px;margin-top:0;background:#c0392b" onclick="confirmDiceSurrender()">Sí, rendirme</button>
+        <button class="btn-ui" style="padding:8px 18px;font-size:14px;margin-top:0;background:#27ae60" onclick="closeDiceSurrender()">Seguir jugando</button>
     </div>
 </div>
 
@@ -817,6 +908,7 @@ function goToMainMenu() {
     player.speed = 0; player.isSailing = false; ui.anchorBtn.classList.remove('sailing');
     resetKeys();
     ui.mapScreen.classList.remove('visible'); ui.controls.style.display = 'none'; ui.actionBtn.style.display = 'none'; ui.fireControls.style.display = 'none';
+    if (typeof closeDiceOverlay === 'function') closeDiceOverlay();
     gameState = STATE.MENU; exitLandscape(); showMain();
 }
 mapCanvas.addEventListener('touchstart', e => {
@@ -1187,6 +1279,7 @@ function renderPortMenu(screen, msg, col) {
         h += say('"¿Una copa?"') + `<div class="port-option" onclick="buyRum()"><span>🥃 Comprar Ron (+5)</span><span>${portRumPrice()}G</span></div>`
             + (currentPort && currentPort.type === 'big' ? `<div class="port-option" onclick="buyMap()"><span>🗺️ Comprar mapa del tesoro</span><span>200G</span></div>` : '')
             + `<div class="port-option" onclick="renderPortMenu('missions')"><span>📜 Misiones</span></div>`
+            + `<div class="port-option" onclick="openDiceGame()"><span>🎲 Jugar al dado mentiroso</span></div>`
             + `<div class="port-option active" onclick="renderPortMenu('main')"><span>🔙 Volver</span></div>`;
     } else if (screen === 'missions') {
         h += say('"¿Trabajo? Mira el tablón."');
@@ -1893,6 +1986,484 @@ document.addEventListener('visibilitychange', () => {
         if (AC && AC.resume) AC.resume();
     }
 });
+
+// === MINIJUEGO: DADO MENTIROSO (1 VS 1 CONTRA PIRATA) ===
+const FACE_NAMES = { 1: 'Ases ★', 2: 'Doses', 3: 'Treses', 4: 'Cuatros', 5: 'Cincos', 6: 'Seises' };
+const FACE_ICONS = { 1: '⚀★', 2: '⚁', 3: '⚂', 4: '⚃', 5: '⚄', 6: '⚅' };
+const PIRATE_TAUNTS = [
+    "¡Mis dados nunca mienten, grumete!",
+    "¿Seguro que quieres seguir subiendo?",
+    "Siento el olor del miedo desde aquí...",
+    "¡Ja! En el Holandés Errante jugábamos por almas.",
+    "Haz tu jugada antes de que se enfríe el ron.",
+    "Tengo buena mano hoy, marinero..."
+];
+
+let diceGame = {
+    phase: 'bet', // 'bet' | 'playerTurn' | 'pirateTurn' | 'reveal' | 'gameover'
+    bet: null,    // { type: 'gold'|'rum', amount: number }
+    playerDice: [],
+    pirateDice: [],
+    currentBid: null, // { qty: number, face: 1..6, by: 'player'|'pirate' }
+    selQty: 1,
+    selFace: 2,
+    pirateMsg: '',
+    revealInfo: null,
+    winSummary: null,
+    rolling: false,
+    aiTimeout: null
+};
+
+function clearDiceTimer() {
+    if (diceGame.aiTimeout) { clearTimeout(diceGame.aiTimeout); diceGame.aiTimeout = null; }
+}
+function closeDiceOverlay() {
+    clearDiceTimer();
+    const ds = $('dice-screen'); if (ds) ds.classList.remove('visible');
+    const rm = $('dice-rules-modal'); if (rm) rm.style.display = 'none';
+    const sm = $('dice-surrender-modal'); if (sm) sm.style.display = 'none';
+}
+function openDiceGame() {
+    clearDiceTimer();
+    diceGame.phase = 'bet';
+    diceGame.bet = null;
+    diceGame.currentBid = null;
+    diceGame.revealInfo = null;
+    diceGame.winSummary = null;
+    ui.portScreen.classList.remove('visible');
+    $('dice-screen').classList.add('visible');
+    renderDiceScreen();
+}
+function openDiceRules() { $('dice-rules-modal').style.display = 'block'; }
+function closeDiceRules() { $('dice-rules-modal').style.display = 'none'; }
+function closeDiceSurrender() { $('dice-surrender-modal').style.display = 'none'; }
+function surrenderDiceGame() {
+    if (diceGame.phase === 'bet' || diceGame.phase === 'gameover') {
+        closeDiceOverlay();
+        ui.portScreen.classList.add('visible');
+        renderPortMenu('tavern');
+        return;
+    }
+    $('dice-surrender-modal').style.display = 'block';
+}
+function confirmDiceSurrender() {
+    closeDiceOverlay();
+    ui.portScreen.classList.add('visible');
+    renderPortMenu('tavern', '🏳️ Te rendiste y perdiste la apuesta.', '#e74c3c');
+}
+
+function getPortBets() {
+    if (currentPort && currentPort.name === 'Desesperanza') {
+        return [
+            { type: 'gold', amount: 1, label: '💰 1 Oro' },
+            { type: 'gold', amount: 5, label: '💰 5 Oro' },
+            { type: 'gold', amount: 10, label: '💰 10 Oro' },
+            { type: 'rum', amount: 10, label: '🍾 10 Ron' }
+        ];
+    }
+    return [
+        { type: 'gold', amount: 100, label: '💰 100 Oro' },
+        { type: 'gold', amount: 200, label: '💰 200 Oro' },
+        { type: 'gold', amount: 500, label: '💰 500 Oro' },
+        { type: 'gold', amount: 1000, label: '💰 1.000 Oro' },
+        { type: 'gold', amount: 5000, label: '💰 5.000 Oro' },
+        { type: 'gold', amount: 10000, label: '💰 10.000 Oro' }
+    ];
+}
+function canAffordBet(b) {
+    return b.type === 'rum' ? player.inventory.rum >= b.amount : player.inventory.gold >= b.amount;
+}
+
+function startDiceMatch(idx) {
+    const bets = getPortBets();
+    const b = bets[idx];
+    if (!b || !canAffordBet(b)) {
+        showMsg(b && b.type === 'rum' ? 'No tienes suficiente ron' : 'No tienes suficiente oro', '#e74c3c');
+        return;
+    }
+    if (b.type === 'rum') player.inventory.rum -= b.amount;
+    else player.inventory.gold -= b.amount;
+    saveGame(true); // evita recargar para recuperar lo apostado
+    sfx('coin');
+    diceGame.bet = b;
+    diceGame.playerDice = [1, 1, 1, 1, 1];
+    diceGame.pirateDice = [1, 1, 1, 1, 1];
+    startDiceRound('player');
+}
+
+function rollArray(n) {
+    const arr = [];
+    for (let i = 0; i < n; i++) arr.push(Math.floor(Math.random() * 6) + 1);
+    return arr;
+}
+
+function startDiceRound(starter) {
+    clearDiceTimer();
+    diceGame.playerDice = rollArray(diceGame.playerDice.length);
+    diceGame.pirateDice = rollArray(diceGame.pirateDice.length);
+    diceGame.currentBid = null;
+    diceGame.revealInfo = null;
+    diceGame.rolling = true;
+    sfx('bump');
+    setTimeout(() => { diceGame.rolling = false; renderDiceScreen(); }, 460);
+
+    if (starter === 'player') {
+        diceGame.phase = 'playerTurn';
+        diceGame.selQty = 1;
+        diceGame.selFace = 2;
+        diceGame.pirateMsg = '"Empiezas tú, marinero. Haz tu apuesta."';
+        renderDiceScreen();
+    } else {
+        diceGame.phase = 'pirateTurn';
+        diceGame.pirateMsg = '"Me toca abrir la ronda... veamos qué sale."';
+        renderDiceScreen();
+        diceGame.aiTimeout = setTimeout(pirateTurn, 1100);
+    }
+}
+
+// Reglas oficiales de Dado Mentiroso (con Ases/1 como comodines)
+function isValidDiceBid(qty, face, prev) {
+    const totalDice = diceGame.playerDice.length + diceGame.pirateDice.length;
+    if (qty < 1 || qty > totalDice || face < 1 || face > 6) return false;
+    if (!prev) return true;
+    if (prev.face !== 1 && face === 1) {
+        // Cambiar de cara normal a Ases (1): mínimo la mitad redondeada arriba
+        return qty >= Math.ceil(prev.qty / 2);
+    }
+    if (prev.face === 1 && face !== 1) {
+        // Cambiar de Ases (1) a cara normal: mínimo el doble + 1
+        return qty >= prev.qty * 2 + 1;
+    }
+    // Misma categoría (normal->normal o As->As)
+    return qty > prev.qty || (qty === prev.qty && face > prev.face);
+}
+
+function defaultNextBid() {
+    const totalDice = diceGame.playerDice.length + diceGame.pirateDice.length;
+    const prev = diceGame.currentBid;
+    if (!prev) return { qty: 1, face: 2 };
+    for (let q = 1; q <= totalDice; q++) {
+        for (let f = 2; f <= 6; f++) {
+            if (isValidDiceBid(q, f, prev)) return { qty: q, face: f };
+        }
+        if (isValidDiceBid(q, 1, prev)) return { qty: q, face: 1 };
+    }
+    return { qty: prev.qty, face: prev.face };
+}
+
+function adjustDiceQty(delta) {
+    if (diceGame.phase !== 'playerTurn') return;
+    const totalDice = diceGame.playerDice.length + diceGame.pirateDice.length;
+    diceGame.selQty = Math.max(1, Math.min(totalDice, diceGame.selQty + delta));
+    renderDiceScreen();
+}
+function selectDiceFace(f) {
+    if (diceGame.phase !== 'playerTurn') return;
+    diceGame.selFace = f;
+    renderDiceScreen();
+}
+
+function playerRaiseBid() {
+    if (diceGame.phase !== 'playerTurn') return;
+    if (!isValidDiceBid(diceGame.selQty, diceGame.selFace, diceGame.currentBid)) return;
+    diceGame.currentBid = { qty: diceGame.selQty, face: diceGame.selFace, by: 'player' };
+    diceGame.phase = 'pirateTurn';
+    diceGame.pirateMsg = '"Hmm... déjame pensar..."';
+    sfx('bump');
+    renderDiceScreen();
+    diceGame.aiTimeout = setTimeout(pirateTurn, 1050);
+}
+
+function countMatchingDice(arr, face) {
+    let c = 0;
+    for (const v of arr) {
+        if (face === 1) { if (v === 1) c++; }
+        else { if (v === face || v === 1) c++; }
+    }
+    return c;
+}
+
+function pirateTurn() {
+    if (diceGame.phase !== 'pirateTurn') return;
+    const totalDice = diceGame.playerDice.length + diceGame.pirateDice.length;
+    const prev = diceGame.currentBid;
+
+    // Generar todas las apuestas legales posibles
+    const legal = [];
+    for (let q = 1; q <= totalDice; q++) {
+        for (let f = 1; f <= 6; f++) {
+            if (isValidDiceBid(q, f, prev)) legal.push({ qty: q, face: f });
+        }
+    }
+
+    if (prev) {
+        const own = countMatchingDice(diceGame.pirateDice, prev.face);
+        const unknown = diceGame.playerDice.length;
+        const expected = own + unknown * (prev.face === 1 ? (1 / 6) : (2 / 6));
+        const diff = prev.qty - expected;
+        let challengeProb = 0;
+        if (legal.length === 0 || prev.qty > totalDice) challengeProb = 1;
+        else if (diff > 1.3) challengeProb = 0.88;
+        else if (diff > 0.6) challengeProb = 0.58;
+        else if (diff > 0.1) challengeProb = 0.28;
+        else challengeProb = 0.08;
+
+        if (Math.random() < challengeProb) {
+            challengeDiceBid('pirate');
+            return;
+        }
+    }
+
+    // Elegir la mejor subida (o un farol pirata)
+    const bluff = Math.random() < 0.24;
+    let best = legal[0];
+    let bestScore = -999;
+    for (const cand of legal) {
+        const own = countMatchingDice(diceGame.pirateDice, cand.face);
+        const unknown = diceGame.playerDice.length;
+        const exp = own + unknown * (cand.face === 1 ? (1 / 6) : (2 / 6));
+        let score = (exp - cand.qty) * 3 - cand.qty * 0.4;
+        if (bluff && own === 0) score += 2.2;
+        score += (Math.random() - 0.5) * 1.4;
+        if (score > bestScore) { bestScore = score; best = cand; }
+    }
+
+    diceGame.currentBid = { qty: best.qty, face: best.face, by: 'pirate' };
+    diceGame.phase = 'playerTurn';
+    const next = defaultNextBid();
+    diceGame.selQty = next.qty;
+    diceGame.selFace = next.face;
+    diceGame.pirateMsg = `"Apuesto ${best.qty} de ${FACE_NAMES[best.face]}. ${PIRATE_TAUNTS[Math.floor(Math.random() * PIRATE_TAUNTS.length)]}"`;
+    sfx('bump');
+    renderDiceScreen();
+}
+
+function challengeDiceBid(challenger) {
+    if (!diceGame.currentBid) return;
+    clearDiceTimer();
+    const bid = diceGame.currentBid;
+    const pCount = countMatchingDice(diceGame.playerDice, bid.face);
+    const eCount = countMatchingDice(diceGame.pirateDice, bid.face);
+    const total = pCount + eCount;
+    const bidWasTrue = total >= bid.qty;
+    const loser = bidWasTrue ? challenger : bid.by;
+
+    diceGame.phase = 'reveal';
+    diceGame.revealInfo = {
+        challenger,
+        bid,
+        total,
+        bidWasTrue,
+        loser
+    };
+    sfx('hit');
+    renderDiceScreen();
+}
+
+function continueAfterReveal() {
+    if (diceGame.phase !== 'reveal' || !diceGame.revealInfo) return;
+    const loser = diceGame.revealInfo.loser;
+    if (loser === 'player') diceGame.playerDice.pop();
+    else diceGame.pirateDice.pop();
+
+    if (diceGame.playerDice.length === 0 || diceGame.pirateDice.length === 0) {
+        finishDiceMatch(diceGame.pirateDice.length === 0);
+        return;
+    }
+    startDiceRound(loser);
+}
+
+function grantFreeDiceRumor() {
+    const r = RUMORS[Math.floor(Math.random() * RUMORS.length)];
+    let marked = false;
+    if (r.loc) {
+        const p = ports.find(q => q.name === r.near);
+        if (p) {
+            const a = Math.random() * Math.PI * 2, d = 1200 + Math.random() * 800;
+            const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+            if (r.loc === 'wreck') {
+                wrecks.push({ x, y, angle: Math.random() * Math.PI * 2, state: 'uninspected', rumor: true, born: gameTime });
+                rumorMark = { x, y, fake: false };
+            } else {
+                rumorMark = { x, y, fake: true };
+            }
+            marked = true;
+        }
+    }
+    return { text: r.text, marked };
+}
+
+function finishDiceMatch(playerWon) {
+    diceGame.phase = 'gameover';
+    const b = diceGame.bet;
+    if (playerWon) {
+        const prize = b.amount * 2;
+        if (b.type === 'rum') player.inventory.rum += prize;
+        else player.inventory.gold += prize;
+        sfx('coin');
+        let rumorGot = null;
+        if (Math.random() < 0.45) rumorGot = grantFreeDiceRumor();
+        diceGame.winSummary = { won: true, prize, type: b.type, rumor: rumorGot };
+        saveGame(true);
+    } else {
+        sfx('sink');
+        diceGame.winSummary = { won: false, lost: b.amount, type: b.type };
+        saveGame(true);
+    }
+    renderDiceScreen();
+}
+
+// Dibuja un dado 3D con puntos (pips) reales
+function renderDie3DHTML(val, highlight, rolling) {
+    const pipMap = {
+        1: [4],
+        2: [0, 8],
+        3: [0, 4, 8],
+        4: [0, 2, 6, 8],
+        5: [0, 2, 4, 6, 8],
+        6: [0, 2, 3, 5, 6, 8]
+    };
+    const active = pipMap[val] || [];
+    let cells = '';
+    for (let i = 0; i < 9; i++) {
+        if (active.includes(i)) {
+            cells += `<span class="pip${val === 1 ? ' ace' : ''}"></span>`;
+        } else {
+            cells += '<span></span>';
+        }
+    }
+    return `<div class="die-3d${highlight ? ' match' : ''}${rolling ? ' rolling' : ''}">${cells}</div>`;
+}
+
+function renderDiceScreen() {
+    const hud = $('dice-hud-stats');
+    const board = $('dice-board');
+    if (!hud || !board) return;
+
+    const potTxt = diceGame.bet ? ` &nbsp;|&nbsp; 🏆 Premio: ${diceGame.bet.amount * 2}${diceGame.bet.type === 'rum' ? ' 🍾' : 'G'}` : '';
+    hud.innerHTML = `<span>💰 ${player.inventory.gold}</span><span>🍾 ${player.inventory.rum}</span><span style="color:#f1c40f">${potTxt}</span>`;
+
+    if (diceGame.phase === 'bet') {
+        const bets = getPortBets();
+        const isPoor = currentPort && currentPort.name === 'Desesperanza';
+        let btns = bets.map((b, i) => {
+            const ok = canAffordBet(b);
+            return `<button class="bet-btn${ok ? '' : ' disabled'}" onclick="startDiceMatch(${i})">${b.label}</button>`;
+        }).join('');
+        board.innerHTML = `
+            <div style="margin:auto;text-align:center;width:100%">
+                <h2 style="font-size:22px;margin-bottom:6px">🎲 DADO MENTIROSO — VS PIRATA</h2>
+                <div style="color:#f8c471;font-size:14px;margin-bottom:10px">
+                    ${isPoor ? '"Aquí en Desesperanza jugamos por migajas o por ron..."' : '"Pon tu oro sobre la madera, marinero, si te atreves."'}
+                </div>
+                <div class="bet-grid">${btns}</div>
+                <button class="btn-ui" style="padding:10px 24px;font-size:15px;margin-top:12px" onclick="surrenderDiceGame()">🔙 Volver a la taberna</button>
+            </div>`;
+        return;
+    }
+
+    if (diceGame.phase === 'gameover' && diceGame.winSummary) {
+        const s = diceGame.winSummary;
+        const unit = s.type === 'rum' ? '🍾 de Ron' : '💰 de Oro';
+        let rumorBlock = '';
+        if (s.won && s.rumor) {
+            rumorBlock = `<div style="background:rgba(0,0,0,.6);border:2px solid #f1c40f;border-radius:8px;padding:10px;margin:10px auto;max-width:480px;font-size:13px;color:#f9e79f">
+                👂 <b>¡El Pirata soltó un rumor al perder!</b><br>
+                <i>"${s.rumor.text}"</i>
+                ${s.rumor.marked ? '<br><span style="color:#2ecc71;font-weight:bold">📍 ¡Marcado con una X en tu minimapa!</span>' : ''}
+            </div>`;
+        }
+        board.innerHTML = `
+            <div style="margin:auto;text-align:center;width:100%">
+                <h2 style="font-size:26px;color:${s.won ? '#2ecc71' : '#e74c3c'}">${s.won ? '🏆 ¡GANASTE LA PARTIDA!' : '💀 EL PIRATA TE DESPLUMÓ'}</h2>
+                <div style="font-size:17px;color:#f1c40f;margin:8px 0">
+                    ${s.won ? `Recibes <b>${s.prize} ${unit}</b>` : `Perdiste <b>${s.lost} ${unit}</b>`}
+                </div>
+                ${rumorBlock}
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px">
+                    <button class="btn-ui" style="padding:10px 22px;font-size:15px;margin-top:0;background:#27ae60" onclick="openDiceGame()">🔄 Apostar de nuevo</button>
+                    <button class="btn-ui" style="padding:10px 22px;font-size:15px;margin-top:0" onclick="surrenderDiceGame()">🍺 Volver a la taberna</button>
+                </div>
+            </div>`;
+        return;
+    }
+
+    // Fase de juego activo ('playerTurn' | 'pirateTurn' | 'reveal')
+    const showPirateDice = diceGame.phase === 'reveal';
+    const bidFace = diceGame.currentBid ? diceGame.currentBid.face : null;
+    const isMatchVal = v => bidFace !== null && (bidFace === 1 ? v === 1 : (v === bidFace || v === 1));
+
+    const pirateRow = showPirateDice
+        ? diceGame.pirateDice.map(v => renderDie3DHTML(v, isMatchVal(v), false)).join('')
+        : diceGame.pirateDice.map(() => `<div class="dice-cup">☠️</div>`).join('');
+
+    const playerRow = diceGame.playerDice.map(v => renderDie3DHTML(v, isMatchVal(v), diceGame.rolling)).join('');
+
+    let centerHTML = '';
+    if (diceGame.phase === 'reveal' && diceGame.revealInfo) {
+        const r = diceGame.revealInfo;
+        const whoCalled = r.challenger === 'player' ? '¡Gritaste MENTIROSO!' : '¡El Pirata gritó MENTIROSO!';
+        const loserTxt = r.loser === 'player' ? 'Pierdes 1 dado.' : 'El Pirata pierde 1 dado.';
+        centerHTML = `
+            <div class="dice-bid-banner" style="color:${r.loser === 'player' ? '#e74c3c' : '#2ecc71'}">${whoCalled}</div>
+            <div style="font-size:14px;margin:4px 0">
+                Apuesta: <b>${r.bid.qty} × ${FACE_NAMES[r.bid.face]}</b> &nbsp;|&nbsp; En mesa había: <b>${r.total}</b>
+            </div>
+            <div style="font-size:14px;font-weight:bold;color:#f1c40f;margin-bottom:6px">${loserTxt}</div>
+            <button class="dice-act-btn raise" onclick="continueAfterReveal()">▶ Siguiente ronda</button>`;
+    } else {
+        const bidStr = diceGame.currentBid
+            ? `Apuesta actual (${diceGame.currentBid.by === 'player' ? 'Tú' : 'Pirata'}): ${diceGame.currentBid.qty} × ${FACE_ICONS[diceGame.currentBid.face]} ${FACE_NAMES[diceGame.currentBid.face]}`
+            : 'Mesa limpia — Abre la apuesta';
+        centerHTML = `
+            <div class="dice-bid-banner">${bidStr}</div>
+            <div class="dice-pirate-say">${diceGame.pirateMsg}</div>`;
+    }
+
+    let controlsHTML = '';
+    if (diceGame.phase === 'playerTurn') {
+        const valid = isValidDiceBid(diceGame.selQty, diceGame.selFace, diceGame.currentBid);
+        const faceBtns = [1, 2, 3, 4, 5, 6].map(f =>
+            `<button class="face-btn${diceGame.selFace === f ? ' selected' : ''}" onclick="selectDiceFace(${f})">${FACE_ICONS[f]}</button>`
+        ).join('');
+        controlsHTML = `
+            <div class="dice-controls-panel">
+                <div class="dice-pick-row">
+                    <span style="font-size:12px;color:#bdc3c7">Cant:</span>
+                    <button class="qty-btn" onclick="adjustDiceQty(-1)">-</button>
+                    <span class="qty-display">${diceGame.selQty}</span>
+                    <button class="qty-btn" onclick="adjustDiceQty(1)">+</button>
+                    <div style="display:flex;gap:4px">${faceBtns}</div>
+                </div>
+                <div style="font-size:12px;color:${valid ? '#2ecc71' : '#e67e22'}">
+                    Tu jugada: <b>${diceGame.selQty} × ${FACE_NAMES[diceGame.selFace]}</b> ${valid ? '' : '(sube cantidad o cara)'}
+                </div>
+                <div class="dice-action-row">
+                    <button class="dice-act-btn raise" ${valid ? '' : 'disabled'} onclick="playerRaiseBid()">🎲 Subir apuesta</button>
+                    ${diceGame.currentBid ? `<button class="dice-act-btn liar" onclick="challengeDiceBid('player')">🗣️ ¡Mentiroso!</button>` : ''}
+                </div>
+            </div>`;
+    } else if (diceGame.phase === 'pirateTurn') {
+        controlsHTML = `
+            <div class="dice-controls-panel" style="min-width:210px">
+                <div style="color:#f39c12;font-weight:bold;font-size:14px">⏳ Turno del Pirata...</div>
+            </div>`;
+    }
+
+    board.innerHTML = `
+        <div class="dice-zone">
+            <div class="dice-zone-label">🏴‍☠️ PIRATA (${diceGame.pirateDice.length} ${diceGame.pirateDice.length === 1 ? 'dado' : 'dados'})</div>
+            <div class="dice-row">${pirateRow}</div>
+        </div>
+        <div class="dice-center-box">${centerHTML}</div>
+        <div class="dice-bottom-area">
+            <div class="dice-zone">
+                <div class="dice-zone-label">⚓ TUS DADOS (${diceGame.playerDice.length} ${diceGame.playerDice.length === 1 ? 'dado' : 'dados'})</div>
+                <div class="dice-row">${playerRow}</div>
+            </div>
+            ${controlsHTML}
+        </div>`;
+}
 
 // === BUCLE: 60 actualizaciones por segundo en cualquier pantalla ===
 let lastT = 0, acc = 0;
