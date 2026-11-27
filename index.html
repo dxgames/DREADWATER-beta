@@ -426,7 +426,36 @@ const SHIP_SKINS = [
         wreck: "images/sprites/barco-naufragio.png"
     };
     SHIP_SKINS.forEach(s => { imgs[s.sprite] = s.path; });
-    for (const k in imgs) { const im = new Image(); im.onerror = () => { im._err = 1; }; im.src = imgs[k]; sprites[k] = im; }
+    const getOpaqueBBox = im => {
+        try {
+            const c = document.createElement('canvas');
+            c.width = im.naturalWidth; c.height = im.naturalHeight;
+            const g = c.getContext('2d');
+            g.drawImage(im, 0, 0);
+            const data = g.getImageData(0, 0, c.width, c.height).data;
+            let minX = c.width, minY = c.height, maxX = -1, maxY = -1;
+            for (let y = 0; y < c.height; y++) {
+                for (let x = 0; x < c.width; x++) {
+                    if (data[(y * c.width + x) * 4 + 3] > 15) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (maxX >= minX && maxY >= minY) return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+        } catch (e) {}
+        return null;
+    };
+    for (const k in imgs) {
+        const im = new Image();
+        im._isSkin = imgs[k].startsWith('images/skins/');
+        im.onload = () => { if (k === 'player' || im._isSkin) im._bbox = getOpaqueBBox(im); };
+        im.onerror = () => { im._err = 1; };
+        im.src = imgs[k];
+        sprites[k] = im;
+    }
     const tracks = {
         ambient: "audio/music/mar.mp3",
         menu: "audio/music/menu.mp3",
@@ -1891,6 +1920,17 @@ function drawSprite(key, x, y, size, angle, alpha = 1, isStatic = false, fb = '#
     if (ok) {
         const nf = ANIM_FRAMES[key];
         if (nf) { const fw = img.naturalWidth / nf, f = Math.floor(gameTime / ANIM_STEP[key]) % nf; ctx.drawImage(img, f * fw, 0, fw, img.naturalHeight, -size / 2, -size / 2, size, size); }
+        else if (img._isSkin) {
+            const pImg = sprites.player;
+            const targetW = (pImg && pImg._bbox) ? size * (pImg._bbox.w / pImg.naturalWidth) : size * 0.34;
+            const targetH = (pImg && pImg._bbox) ? size * (pImg._bbox.h / pImg.naturalHeight) : size * 0.69;
+            const b = img._bbox;
+            const drawW = b ? targetW * (img.naturalWidth / b.w) : targetW;
+            const drawH = b ? targetH * (img.naturalHeight / b.h) : targetH;
+            const cxN = b ? (b.x + b.w / 2) / img.naturalWidth : 0.5;
+            const cyN = b ? (b.y + b.h / 2) / img.naturalHeight : 0.5;
+            ctx.drawImage(img, -cxN * drawW, -cyN * drawH, drawW, drawH);
+        }
         else ctx.drawImage(img, -size / 2, -size / 2, size, size);
     }
     else {                                              // respaldo si la imagen no carga
